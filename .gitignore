@@ -1,0 +1,97 @@
+# Python
+*.pyc
+__pycache__/
+venv/
+env/
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Django
+*.log
+*.pot
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+*.sqlite3
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Firebase Secrets
+serviceAccountKey.json
+firebase-credentials.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ====================================
+# لا نحتاج هذه الملفات على GitHub:
+# ====================================
+
+# BAT Scripts (مفيدة محلياً فقط)
+*.bat
+
+# Markdown Guides (مفيدة محلياً فقط)
+*_FIX.md
+*_GUIDE.md
+*_SOLUTION.md
+*_CORRECTION.md
+*_UPDATE.md
+*_FIXES.md
+*_README.md
+ALERT_*.md
+ANDROID_*.md
+API_*.md
+APPLY_*.md
+ARABIC_*.md
+ARROWS_*.md
+AUTH_*.md
+AUTO_*.md
+BACKUP_*.md
+BUILD_*.md
+COLOR_*.md
+FEATURE_*.md
+FINAL_*.md
+LOGO_*.md
+MERCHANT_*.md
+PERFORMANCE_*.md
+SKELETON_*.md
+TESTING_*.md
+TROUBLESHOOTING_*.md
+TYPESCRIPT_*.md
+VISUAL_*.md
+NOTIFICATIONS_*.txt
+
+# Backups
+*_backup/
+TawfirProject_Backups/
+*.backup
+*.bak
+
+# Old folders
+offers/
+tawfir_app/
+
+# Node/Frontend (إذا كان موجود بالخطأ)
+node_modules/
+www/
+dist/
+.angular/
