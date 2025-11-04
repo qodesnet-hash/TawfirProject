@@ -22,12 +22,12 @@ media/
 staticfiles/
 *.sqlite3
 
-# Environment
+# Environment - NEVER COMMIT THESE!
 .env
 .env.local
 .env.*.local
 
-# Firebase Secrets
+# Firebase Secrets - NEVER COMMIT!
 serviceAccountKey.json
 firebase-credentials.json
 
@@ -42,56 +42,20 @@ firebase-credentials.json
 .DS_Store
 Thumbs.db
 
-# ====================================
-# لا نحتاج هذه الملفات على GitHub:
-# ====================================
-
-# BAT Scripts (مفيدة محلياً فقط)
-*.bat
-
-# Markdown Guides (مفيدة محلياً فقط)
-*_FIX.md
-*_GUIDE.md
-*_SOLUTION.md
-*_CORRECTION.md
-*_UPDATE.md
-*_FIXES.md
-*_README.md
-ALERT_*.md
-ANDROID_*.md
-API_*.md
-APPLY_*.md
-ARABIC_*.md
-ARROWS_*.md
-AUTH_*.md
-AUTO_*.md
-BACKUP_*.md
-BUILD_*.md
-COLOR_*.md
-FEATURE_*.md
-FINAL_*.md
-LOGO_*.md
-MERCHANT_*.md
-PERFORMANCE_*.md
-SKELETON_*.md
-TESTING_*.md
-TROUBLESHOOTING_*.md
-TYPESCRIPT_*.md
-VISUAL_*.md
-NOTIFICATIONS_*.txt
+# Security Reports (contains sensitive info)
+SECURITY_AUDIT_REPORT.txt
+SECURITY_WARNING.txt
 
 # Backups
 *_backup/
 TawfirProject_Backups/
 *.backup
 *.bak
+*_OLD.*
 
-# Old folders
-offers/
-tawfir_app/
+# Logs
+logs/
+*.log
 
-# Node/Frontend (إذا كان موجود بالخطأ)
+# Node (if any)
 node_modules/
-www/
-dist/
-.angular/
