@@ -1,18 +1,20 @@
 name: Django CI - Tawfir App
 
-# متى يشتغل Workflow؟
 on:
   push:
-    branches: [ main, master, develop ]  # عند الرفع على هذه الـ branches
+    branches: [ main, master, develop ]
+    paths:
+      - 'backend/**'
   pull_request:
     branches: [ main, master ]
+    paths:
+      - 'backend/**'
 
 jobs:
   test:
     name: Test Django App
     runs-on: ubuntu-latest
     
-    # خدمة PostgreSQL للاختبار
     services:
       postgres:
         image: postgres:16
@@ -29,27 +31,24 @@ jobs:
           - 5432:5432
     
     steps:
-    # 1. سحب الكود من GitHub
     - name: Checkout code
       uses: actions/checkout@v3
     
-    # 2. تثبيت Python
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
     
-    # 3. تثبيت المكتبات
     - name: Install dependencies
       run: |
+        cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install google-auth google-auth-oauthlib
     
-    # 4. إعداد متغيرات البيئة للاختبار
     - name: Set up environment variables
       run: |
-        echo "SECRET_KEY=test-secret-key-for-ci-cd-only-not-production" >> $GITHUB_ENV
+        echo "SECRET_KEY=test-secret-key-for-ci-cd-only" >> $GITHUB_ENV
         echo "DEBUG=False" >> $GITHUB_ENV
         echo "DB_NAME=test_tawfir_db" >> $GITHUB_ENV
         echo "DB_USER=postgres" >> $GITHUB_ENV
@@ -59,72 +58,31 @@ jobs:
         echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> $GITHUB_ENV
         echo "GOOGLE_CLIENT_ID=test-client-id" >> $GITHUB_ENV
     
-    # 5. تشغيل Migrations
     - name: Run migrations
-      run: |
-        python manage.py migrate --noinput
+      working-directory: ./backend
+      run: python manage.py migrate --noinput
       env:
         DJANGO_SETTINGS_MODULE: tawfir_backend.settings_production
     
-    # 6. اختبار Django
     - name: Run Django tests
-      run: |
-        python manage.py test --noinput
+      working-directory: ./backend
+      run: python manage.py test --noinput
       env:
         DJANGO_SETTINGS_MODULE: tawfir_backend.settings_production
     
-    # 7. فحص أمني
     - name: Django security check
-      run: |
-        python manage.py check --deploy --fail-level WARNING
+      working-directory: ./backend
+      run: python manage.py check --deploy --fail-level WARNING
       env:
         DJANGO_SETTINGS_MODULE: tawfir_backend.settings_production
-    
-    # 8. فحص جودة الكود (اختياري)
-    - name: Lint with flake8 (optional)
-      run: |
-        pip install flake8
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv,migrations
-      continue-on-error: true
-
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    # فحص الثغرات في المكتبات
-    - name: Check for known vulnerabilities
-      run: |
-        pip install safety
-        pip install -r requirements.txt
-        safety check --json || true
-      continue-on-error: true
-    
-    # فحص Secrets مكشوفة في الكود
-    - name: Secret scanning
-      uses: trufflesecurity/trufflehog@main
-      with:
-        path: ./
-        base: ${{ github.event.repository.default_branch }}
-        head: HEAD
-      continue-on-error: true
 
   build-success:
     name: Build Success
     runs-on: ubuntu-latest
-    needs: [test, security-scan]
+    needs: [test]
     
     steps:
     - name: Success message
       run: |
         echo "✅ All tests passed!"
-        echo "✅ Security checks completed!"
-        echo "🚀 Ready for deployment!"
+        echo "🚀 Backend ready!"

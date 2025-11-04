@@ -1,0 +1,190 @@
+# ══════════════════════════════════════════════════════════════════
+# ⚠️ SECURITY - ملفات حساسة يجب عدم رفعها على Git
+# ══════════════════════════════════════════════════════════════════
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.secure
+*.env
+
+# Secrets & Keys
+*.key
+*.pem
+*.p12
+*.pfx
+serviceAccountKey.json
+secrets.json
+credentials.json
+
+# Database dumps
+*.sql
+*.sqlite3
+*.db
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# ══════════════════════════════════════════════════════════════════
+# Python
+# ══════════════════════════════════════════════════════════════════
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# ══════════════════════════════════════════════════════════════════
+# Django
+# ══════════════════════════════════════════════════════════════════
+
+# Static & Media files (حسب الإعدادات)
+/static/
+/staticfiles/
+/media/
+!/media/.gitkeep
+
+# Django migrations (اختياري - احذف السطر إذا كنت تريد رفع migrations)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Django debug
+*.log
+db.sqlite3
+db.sqlite3-journal
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# ══════════════════════════════════════════════════════════════════
+# OS
+# ══════════════════════════════════════════════════════════════════
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ══════════════════════════════════════════════════════════════════
+# Backups
+# ══════════════════════════════════════════════════════════════════
+
+*.bak
+*.backup
+*.old
+*.orig
+*~
+*.swp
+*.swo
+
+# ══════════════════════════════════════════════════════════════════
+# Testing
+# ══════════════════════════════════════════════════════════════════
+
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.hypothesis/
+.pytype/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ══════════════════════════════════════════════════════════════════
+# Node.js (للـ frontend إذا كان موجود)
+# ══════════════════════════════════════════════════════════════════
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ══════════════════════════════════════════════════════════════════
+# Temporary files
+# ══════════════════════════════════════════════════════════════════
+
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ══════════════════════════════════════════════════════════════════
+# SSL Certificates
+# ══════════════════════════════════════════════════════════════════
+
+*.crt
+*.pem
+*.key
+*.csr
+*.p12
+ssl/
+
+# ══════════════════════════════════════════════════════════════════
+# Deployment
+# ══════════════════════════════════════════════════════════════════
+
+*.pid
+*.sock
+gunicorn.log
+nginx_error.log
+nginx_access.log

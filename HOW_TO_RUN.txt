@@ -1,0 +1,22 @@
+# ============================================
+# طريقة سهلة للتحقق من معدل النمو
+# ============================================
+
+# نسخ والصق هذه الأوامر في Terminal:
+
+# 1. اذهب للمجلد
+cd C:\Users\mus_2\GitHub\TawfirProject
+
+# 2. فعّل البيئة الافتراضية
+venv\Scripts\activate
+
+# 3. شغّل السكريبت
+python verify_analytics.py
+
+# 4. أو استخدم هذا الأمر المختصر:
+# python -c "exec(open('verify_analytics.py').read())"
+
+# ============================================
+# أو استخدم هذا الأمر الواحد:
+# ============================================
+cd C:\Users\mus_2\GitHub\TawfirProject && venv\Scripts\activate && python verify_analytics.py

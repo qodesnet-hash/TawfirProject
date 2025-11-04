@@ -1,0 +1,315 @@
+═══════════════════════════════════════════════════════════════════
+    🔒 دليل النشر الآمن - تطبيق توفير
+═══════════════════════════════════════════════════════════════════
+
+📋 قائمة التحقق قبل النشر
+═══════════════════════════════════════════════════════════════════
+
+□ 1. تغيير جميع كلمات المرور
+   ─────────────────────────────────────
+   ⚠️ CRITICAL - افعل هذا فوراً!
+   
+   □ كلمة مرور قاعدة البيانات
+   □ SECRET_KEY في .env
+   □ Twilio credentials (أعد إصدارها)
+   □ Google OAuth credentials
+   □ كلمة مرور المشرف
+
+□ 2. حذف .env من تاريخ Git
+   ─────────────────────────────────────
+   الملف موجود في التاريخ ويجب حذفه:
+   
+   git filter-branch --force --index-filter \
+   "git rm --cached --ignore-unmatch .env" \
+   --prune-empty --tag-name-filter cat -- --all
+   
+   git push origin --force --all
+
+□ 3. تثبيت المكتبات الجديدة
+   ─────────────────────────────────────
+   pip install -r requirements_secure.txt
+
+□ 4. استخدام الإعدادات الآمنة
+   ─────────────────────────────────────
+   في manage.py:
+   os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tawfir_backend.settings_secure')
+
+□ 5. تحديث .env
+   ─────────────────────────────────────
+   انسخ من .env.secure وغيّر القيم:
+   cp .env.secure .env
+   nano .env  # غيّر كل القيم
+
+□ 6. إعداد قاعدة البيانات
+   ─────────────────────────────────────
+   python manage.py makemigrations
+   python manage.py migrate
+   python manage.py createsuperuser
+
+□ 7. جمع الملفات الثابتة
+   ─────────────────────────────────────
+   python manage.py collectstatic --noinput
+
+□ 8. اختبار الإعدادات
+   ─────────────────────────────────────
+   python manage.py check --deploy
+
+□ 9. إعداد Gunicorn
+   ─────────────────────────────────────
+   gunicorn tawfir_backend.wsgi:application \
+   --bind 0.0.0.0:8000 \
+   --workers 4 \
+   --timeout 120 \
+   --access-logfile logs/access.log \
+   --error-logfile logs/error.log
+
+□ 10. إعداد Nginx
+   ─────────────────────────────────────
+   انظر قسم "إعداد Nginx" أدناه
+
+═══════════════════════════════════════════════════════════════════
+    🔧 إعداد الإنتاج - Production Setup
+═══════════════════════════════════════════════════════════════════
+
+1. ملف .env للإنتاج
+─────────────────────
+DEBUG=False
+ENVIRONMENT=production
+SECRET_KEY=<مفتاح جديد طويل ومعقد>
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+CSRF_TRUSTED_ORIGINS=https://yourdomain.com
+
+DB_NAME=tawfir_production
+DB_USER=tawfir_user
+DB_PASSWORD=<كلمة مرور قوية جداً>
+DB_HOST=localhost
+DB_PORT=5432
+
+ADMIN_EMAIL=admin@yourdomain.com
+
+2. PostgreSQL Setup
+─────────────────────
+sudo -u postgres psql
+CREATE DATABASE tawfir_production;
+CREATE USER tawfir_user WITH PASSWORD 'strong_password_here';
+ALTER ROLE tawfir_user SET client_encoding TO 'utf8';
+ALTER ROLE tawfir_user SET default_transaction_isolation TO 'read committed';
+ALTER ROLE tawfir_user SET timezone TO 'Asia/Riyadh';
+GRANT ALL PRIVILEGES ON DATABASE tawfir_production TO tawfir_user;
+\q
+
+3. Systemd Service (gunicorn)
+─────────────────────────────
+sudo nano /etc/systemd/system/tawfir.service
+
+[Unit]
+Description=Tawfir Gunicorn Daemon
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/TawfirProject
+Environment="PATH=/path/to/TawfirProject/venv/bin"
+ExecStart=/path/to/TawfirProject/venv/bin/gunicorn \
+          --workers 4 \
+          --bind unix:/run/tawfir.sock \
+          tawfir_backend.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+
+sudo systemctl start tawfir
+sudo systemctl enable tawfir
+
+4. Nginx Configuration
+─────────────────────────
+sudo nano /etc/nginx/sites-available/tawfir
+
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+    
+    # Redirect to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com www.yourdomain.com;
+    
+    # SSL Configuration
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    
+    # Logs
+    access_log /var/log/nginx/tawfir_access.log;
+    error_log /var/log/nginx/tawfir_error.log;
+    
+    # Static files
+    location /static/ {
+        alias /path/to/TawfirProject/staticfiles/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    # Media files
+    location /media/ {
+        alias /path/to/TawfirProject/media/;
+        expires 7d;
+        add_header Cache-Control "public";
+    }
+    
+    # Django application
+    location / {
+        proxy_pass http://unix:/run/tawfir.sock;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+    
+    # Rate limiting
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+    location /api/ {
+        limit_req zone=api burst=20 nodelay;
+        proxy_pass http://unix:/run/tawfir.sock;
+    }
+}
+
+sudo ln -s /etc/nginx/sites-available/tawfir /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+
+5. SSL Certificate (Let's Encrypt)
+─────────────────────────────────────
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+sudo certbot renew --dry-run
+
+═══════════════════════════════════════════════════════════════════
+    🔐 إجراءات الأمان الإضافية
+═══════════════════════════════════════════════════════════════════
+
+1. Firewall (UFW)
+─────────────────
+sudo ufw allow 22/tcp     # SSH
+sudo ufw allow 80/tcp     # HTTP
+sudo ufw allow 443/tcp    # HTTPS
+sudo ufw enable
+
+2. Fail2Ban (حماية SSH)
+───────────────────────
+sudo apt install fail2ban
+sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+
+3. PostgreSQL Security
+──────────────────────
+# تعديل pg_hba.conf
+sudo nano /etc/postgresql/*/main/pg_hba.conf
+# غيّر:
+local   all   all                     md5
+host    all   all   127.0.0.1/32     md5
+
+4. Backups التلقائية
+────────────────────
+# إنشاء سكريبت backup
+sudo nano /usr/local/bin/backup_tawfir.sh
+
+#!/bin/bash
+DATE=$(date +%Y%m%d_%H%M%S)
+pg_dump -U tawfir_user tawfir_production > /backups/db_$DATE.sql
+tar -czf /backups/media_$DATE.tar.gz /path/to/TawfirProject/media/
+find /backups -mtime +7 -delete
+
+chmod +x /usr/local/bin/backup_tawfir.sh
+
+# إضافة Cron Job (يومياً 2 صباحاً)
+0 2 * * * /usr/local/bin/backup_tawfir.sh
+
+5. Monitoring
+─────────────
+# تثبيت Sentry للأخطاء
+pip install sentry-sdk
+
+# في settings_secure.py:
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
+sentry_sdk.init(
+    dsn="your-sentry-dsn",
+    integrations=[DjangoIntegration()],
+    traces_sample_rate=0.1,
+    send_default_pii=False
+)
+
+═══════════════════════════════════════════════════════════════════
+    📊 المراقبة والصيانة
+═══════════════════════════════════════════════════════════════════
+
+1. فحص Logs
+───────────
+tail -f logs/django.log
+tail -f logs/security.log
+tail -f /var/log/nginx/tawfir_error.log
+
+2. مراقبة الأداء
+────────────────
+# استخدام Django Silk
+pip install django-silk
+# أضف 'silk' في INSTALLED_APPS
+
+3. تحديثات الأمان
+─────────────────
+# فحص المكتبات
+pip list --outdated
+pip-audit  # فحص الثغرات الأمنية
+
+# تحديث Django
+pip install --upgrade Django
+
+═══════════════════════════════════════════════════════════════════
+    ⚠️ ملاحظات مهمة
+═══════════════════════════════════════════════════════════════════
+
+1. لا تستخدم DEBUG=True في الإنتاج أبداً!
+2. غيّر كل كلمات المرور والمفاتيح
+3. استخدم HTTPS فقط
+4. راجع الـ logs بانتظام
+5. احفظ نسخ احتياطية يومياً
+6. حدّث المكتبات بانتظام
+7. راقب محاولات الاختراق عبر django-axes
+8. استخدم CDN للملفات الثابتة
+9. فعّل Rate Limiting على API
+10. اختبر النسخ الاحتياطية بانتظام
+
+═══════════════════════════════════════════════════════════════════
+    📞 الدعم
+═══════════════════════════════════════════════════════════════════
+
+إذا واجهت مشاكل:
+1. راجع SECURITY_AUDIT_REPORT.txt
+2. تحقق من الـ logs
+3. استخدم python manage.py check --deploy
+4. راجع Django Security Checklist:
+   https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+
+═══════════════════════════════════════════════════════════════════

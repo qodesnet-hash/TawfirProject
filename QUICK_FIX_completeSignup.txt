@@ -1,0 +1,67 @@
+// QUICK FIX - في السطر 446 تقريباً، استبدل دالة completeSignup بهذا:
+
+async completeSignup() {
+  if (!this.userData.city_id) {
+    await this.showToast('يرجى اختيار المدينة', 'warning');
+    return;
+  }
+  
+  if (this.userType === 'merchant' && (!this.userData.latitude || !this.userData.longitude)) {
+    const alert = await this.alertCtrl.create({
+      header: 'تحديد الموقع مطلوب',
+      message: 'يجب تحديد موقع متجرك لعرض العروض للعملاء القريبين',
+      buttons: [{text: 'تحديد الموقع', handler: () => this.getCurrentLocation()}, {text: 'إلغاء', role: 'cancel'}]
+    });
+    await alert.present();
+    return;
+  }
+  
+  const loading = await this.loadingCtrl.create({message: 'جاري إكمال التسجيل...', cssClass: 'custom-loading'});
+  await loading.present();
+  
+  try {
+    // Send email with data - no token needed
+    console.log('Completing profile with data:', this.userData);
+    
+    this.http.post<any>(`${this.apiUrl}/api/v1/auth/api/complete-profile/`, this.userData).subscribe({
+      next: async (response) => {
+        console.log('Profile completion response:', response);
+        
+        if (response.success) {
+          if (this.userType === 'merchant' && this.userData.latitude) {
+            // Update merchant location
+            await this.http.post<any>(`${this.apiUrl}/api/v1/auth/api/merchant/update-location/`, {
+              email: this.userData.email,
+              latitude: this.userData.latitude,
+              longitude: this.userData.longitude,
+              address: this.userData.address
+            }).toPromise();
+          }
+          
+          await loading.dismiss();
+          
+          if (this.userType === 'merchant') {
+            await this.showSuccessAlert('تم إرسال طلبك!', 'سيتم مراجعة طلبك وتفعيل حسابك خلال 24 ساعة');
+          } else {
+            await this.showToast('مرحباً بك في توفير! 🎉', 'success');
+          }
+          
+          setTimeout(() => this.router.navigate(['/tabs/tab1']), 2000);
+        } else {
+          await loading.dismiss();
+          await this.showToast('فشل إكمال التسجيل', 'danger');
+        }
+      },
+      error: async (error) => {
+        await loading.dismiss();
+        console.error('Profile completion error:', error);
+        const errorMessage = error.error?.error || 'حدث خطأ في إكمال البيانات';
+        await this.showToast(errorMessage, 'danger');
+      }
+    });
+  } catch (error: any) {
+    await loading.dismiss();
+    console.error('Complete signup error:', error);
+    await this.showToast('حدث خطأ في إكمال التسجيل', 'danger');
+  }
+}

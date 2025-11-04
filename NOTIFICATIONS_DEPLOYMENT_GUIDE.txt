@@ -1,0 +1,84 @@
+==============================================
+  نظام الإشعارات - دليل النشر
+==============================================
+
+📦 الحالة الحالية:
+✅ النظام مبني بالكامل
+⏸️ الاختبار مؤجل لحين النشر
+
+🚀 عند النشر على السيرفر:
+===============================
+
+1️⃣ Backend (Django):
+----------------------
+✅ ارفع المشروع على السيرفر
+✅ ضع serviceAccountKey.json في المجلد الرئيسي
+✅ pip install firebase-admin
+✅ حدّث ALLOWED_HOSTS في settings.py
+✅ python manage.py migrate
+
+2️⃣ Frontend (Ionic):
+----------------------
+✅ حدّث environment.prod.ts:
+   apiUrl: 'https://your-domain.com/api/v1/'
+   baseUrl: 'https://your-domain.com/'
+
+3️⃣ Firebase Console:
+----------------------
+✅ أضف domain السيرفر في:
+   Authentication → Settings → Authorized domains
+   
+✅ احصل على SHA-1 للـ Release Key:
+   keytool -list -v -keystore your-release-key.keystore
+   
+✅ أضف SHA-1 في Firebase Console
+
+✅ حمّل google-services.json الجديد
+
+4️⃣ بناء APK:
+----------------------
+cd tawfir_app
+ionic build --prod
+ionic cap sync android
+ionic cap open android
+
+في Android Studio:
+Build → Generate Signed Bundle/APK
+اختر APK
+استخدم Release Key
+Build
+
+5️⃣ الاختبار:
+----------------------
+✅ ثبّت APK على الجهاز
+✅ سجل دخول بـ Google (سيعمل!)
+✅ افتح Admin Panel
+✅ أضف إشعار
+✅ أرسله
+✅ سيصل للجهاز! 🎉
+
+==============================================
+
+📝 ملاحظات مهمة:
+==============================================
+
+1. SHA-1 للـ Debug ≠ SHA-1 للـ Release
+   يجب إضافة كليهما في Firebase Console
+
+2. serviceAccountKey.json حساس جداً
+   لا ترفعه على GitHub
+   أضفه في .gitignore
+
+3. Domain يجب أن يكون HTTPS
+   Google Sign-In لا يعمل مع HTTP
+
+4. عند تغيير Domain:
+   - حدّث Firebase Authorized domains
+   - حدّث environment.prod.ts
+   - أعد بناء التطبيق
+
+==============================================
+
+✅ كل شيء جاهز للنشر!
+
+==============================================

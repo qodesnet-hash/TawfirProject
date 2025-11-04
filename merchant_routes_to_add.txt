@@ -1,0 +1,23 @@
+// إضافة المسارات للصفحات الجديدة في app.routes.ts
+// يجب إضافة هذه المسارات إلى المصفوفة routes الموجودة
+
+export const merchantRoutes = [
+  {
+    path: 'merchant-offers',
+    loadComponent: () => import('./pages/merchant-offers/merchant-offers.page').then( m => m.MerchantOffersPage)
+  },
+  {
+    path: 'merchant-analytics',
+    loadComponent: () => import('./pages/merchant-analytics/merchant-analytics.page').then( m => m.MerchantAnalyticsPage)
+  },
+  {
+    path: 'merchant-settings',
+    loadComponent: () => import('./pages/merchant-settings/merchant-settings.page').then( m => m.MerchantSettingsPage)
+  },
+  {
+    path: 'merchant-edit-offer/:id',
+    loadComponent: () => import('./pages/merchant-add-offer/merchant-add-offer.page').then( m => m.MerchantAddOfferPage)
+  }
+];
+
+// أضف هذه المسارات إلى مصفوفة routes الرئيسية في app.routes.ts

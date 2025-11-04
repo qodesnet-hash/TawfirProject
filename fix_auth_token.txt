@@ -1,0 +1,137 @@
+تم تشخيص المشكلة: خطأ 401 Unauthorized
+
+السبب المحتمل:
+التوكن (Token) الذي يتم إرساله إلى الـ Backend غير صحيح أو منتهي الصلاحية.
+
+الحل المقترح:
+
+في ملف: tawfir_app/src/app/pages/auth-gmail/auth-gmail.page.ts
+
+استبدل دالة completeSignup() بالكود التالي:
+
+```typescript
+// Complete signup
+async completeSignup() {
+  // Validate required fields
+  if (!this.userData.city_id) {
+    await this.showToast('يرجى اختيار المدينة', 'warning');
+    return;
+  }
+  
+  // For merchants, location is required
+  if (this.userType === 'merchant' && (!this.userData.latitude || !this.userData.longitude)) {
+    const alert = await this.alertCtrl.create({
+      header: 'تحديد الموقع مطلوب',
+      message: 'يجب تحديد موقع متجرك لعرض العروض للعملاء القريبين',
+      buttons: [
+        {
+          text: 'تحديد الموقع',
+          handler: () => {
+            this.getCurrentLocation();
+          }
+        },
+        {
+          text: 'إلغاء',
+          role: 'cancel'
+        }
+      ]
+    });
+    await alert.present();
+    return;
+  }
+  
+  const loading = await this.loadingCtrl.create({
+    message: 'جاري إكمال التسجيل...',
+    cssClass: 'custom-loading'
+  });
+  await loading.present();
+  
+  try {
+    // Get token with detailed logging
+    const token = await this.authService.getToken();
+    console.log('Token retrieved:', token ? 'Token exists' : 'Token is null');
+    console.log('Full token:', token); // سيظهر التوكن الكامل في console
+    
+    if (!token) {
+      await loading.dismiss();
+      await this.showToast('خطأ: لم يتم العثور على رمز المصادقة. يرجى التسجيل مرة أخرى', 'danger');
+      this.currentStep = 1;
+      return;
+    }
+    
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+    
+    console.log('Completing profile with data:', this.userData);
+    console.log('Authorization header set');
+    
+    this.http.post<any>(
+      `${this.apiUrl}/api/v1/auth/api/complete-profile/`,
+      this.userData,
+      { headers }
+    ).subscribe({
+      next: async (response) => {
+        console.log('Profile completion response:', response);
+        
+        if (response.success) {
+          // For merchants, update location
+          if (this.userType === 'merchant' && this.userData.latitude) {
+            await this.updateMerchantLocation(headers);
+          }
+          
+          await loading.dismiss();
+          
+          // Show success message
+          if (this.userType === 'merchant') {
+            await this.showSuccessAlert(
+              'تم إرسال طلبك!',
+              'سيتم مراجعة طلبك وتفعيل حسابك خلال 24 ساعة',
+              'سنرسل لك إشعاراً عند تفعيل حسابك'
+            );
+          } else {
+            await this.showToast('مرحباً بك في توفير! 🎉', 'success');
+          }
+          
+          // Navigate to app
+          setTimeout(() => {
+            this.router.navigate(['/tabs/tab1']);
+          }, 2000);
+        } else {
+          await loading.dismiss();
+          await this.showToast('فشل إكمال التسجيل', 'danger');
+        }
+      },
+      error: async (error) => {
+        await loading.dismiss();
+        console.error('Profile completion error:', error);
+        console.error('Error status:', error.status);
+        console.error('Error details:', error.error);
+        
+        let errorMessage = 'حدث خطأ في إكمال البيانات';
+        
+        if (error.status === 401) {
+          errorMessage = 'انتهت صلاحية الجلسة. يرجى التسجيل مرة أخرى';
+          // Reset to step 1
+          this.currentStep = 1;
+          this.googleUser = null;
+        } else if (error.error?.error) {
+          errorMessage = error.error.error;
+        }
+        
+        await this.showToast(errorMessage, 'danger');
+      }
+    });
+  } catch (error: any) {
+    await loading.dismiss();
+    console.error('Complete signup error:', error);
+    await this.showToast('حدث خطأ في إكمال التسجيل', 'danger');
+  }
+}
+```
+
+الآن جرّب مرة أخرى وراقب الـ console:
+1. تأكد من أن "Token retrieved: Token exists" يظهر
+2. انظر إلى التوكن الكامل المطبوع
+3. افحص رسائل الخطأ بالتفصيل

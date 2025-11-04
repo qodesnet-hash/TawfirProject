@@ -1,0 +1,7 @@
+# أضف هذا في api/urls.py
+
+# في imports أضف:
+from .analytics_update import RecordOfferViewView
+
+# في urlpatterns أضف:
+path('offers/<int:offer_id>/view/', RecordOfferViewView.as_view(), name='record-offer-view'),

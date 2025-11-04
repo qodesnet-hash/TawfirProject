@@ -1,0 +1,117 @@
+/* ================================================
+   تصميم Input العصري - مقارنة
+   ================================================ */
+
+/* ❌ التصميم القديم */
+.old-input {
+  background: #F3F4F6;  /* خلفية رمادية */
+  border-radius: 14px;
+  padding: 18px;
+  border: 2px solid transparent;
+  min-height: 58px;
+}
+
+/* ✅ التصميم الجديد (Modern) */
+.new-input {
+  /* Container */
+  background: transparent;
+  padding: 0;
+  border: none;
+  
+  /* Label */
+  label {
+    font-size: 13px;
+    color: #6B7280;  /* رمادي فاتح */
+    font-weight: 600;
+    margin-bottom: 8px;
+    
+    ion-icon {
+      font-size: 16px;
+      color: #10B981;  /* أخضر */
+      opacity: 0.8;
+    }
+  }
+  
+  /* Input Field */
+  input {
+    background: #FFFFFF;  /* خلفية بيضاء */
+    border: 1.5px solid #E5E7EB;  /* حدود رمادية فاتحة */
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 15px;
+    transition: all 0.25s ease;
+    
+    /* Hover Effect */
+    &:hover {
+      border-color: rgba(16, 185, 129, 0.3);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.05);
+    }
+    
+    /* Focus Effect */
+    &:focus {
+      border-color: #10B981;  /* أخضر */
+      box-shadow: 
+        0 0 0 3px rgba(16, 185, 129, 0.1),
+        0 2px 12px rgba(16, 185, 129, 0.08);
+      outline: none;
+    }
+    
+    /* Placeholder */
+    &::placeholder {
+      color: #9CA3AF;
+      font-weight: 400;
+      font-size: 14px;
+    }
+  }
+}
+
+/* ================================================
+   المميزات الجديدة
+   ================================================ */
+
+1. تصميم نظيف وبسيط:
+   - خلفية بيضاء بدلاً من رمادية
+   - حدود واضحة وناعمة
+   - تباعد مثالي
+
+2. تأثيرات تفاعلية:
+   - hover: حدود خضراء خفيفة + shadow
+   - focus: حدود خضراء + ring أخضر + shadow
+   - transition ناعم (0.25s)
+
+3. ألوان محسّنة:
+   - Label: رمادي فاتح (#6B7280)
+   - Border: رمادي فاتح (#E5E7EB)
+   - Focus: أخضر (#10B981)
+   - Icon: أخضر بشفافية
+
+4. Typography:
+   - Label: 13px
+   - Input: 15px
+   - Placeholder: 14px
+   - Font weights مختلفة
+
+5. Spacing:
+   - Padding داخلي: 14px 16px
+   - Margin بين Label و Input: 8px
+   - Border radius: 12px
+
+/* ================================================
+   أمثلة من تطبيقات شهيرة
+   ================================================ */
+
+// Instagram Style
+border: 1px solid #DBDBDB
+focus: border-color: #0095F6
+
+// WhatsApp Style  
+border: 1.5px solid #D1D7DB
+focus: border-color: #00A884
+
+// Twitter Style
+border: 1px solid #CFD9DE
+focus: border-color: #1D9BF0
+
+// Tawfir Style (الجديد)
+border: 1.5px solid #E5E7EB
+focus: border-color: #10B981

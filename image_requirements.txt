@@ -1,0 +1,4 @@
+# Image Compression Requirements
+# أضف هذه للـ requirements.txt
+
+Pillow>=10.0.0  # لمعالجة الصور (سيثبت أحدث نسخة متوافقة)

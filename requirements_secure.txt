@@ -1,0 +1,67 @@
+# ═══════════════════════════════════════════════════════════════════
+# تطبيق توفير - المتطلبات
+# Tawfir App - Requirements
+# ═══════════════════════════════════════════════════════════════════
+
+# Django Core
+Django==4.2.7
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# CORS
+django-cors-headers==4.3.0
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# SMS Service
+twilio==8.10.0
+
+# Image Processing
+Pillow==10.1.0
+
+# Production Server
+gunicorn==21.2.0
+whitenoise==6.6.0
+
+# ═══════════════════════════════════════════════════════════════════
+# Security & Authentication
+# ═══════════════════════════════════════════════════════════════════
+
+# Google OAuth - للتحقق من Google tokens
+google-auth==2.23.4
+google-auth-oauthlib==1.1.0
+google-auth-httplib2==0.1.1
+
+# ═══════════════════════════════════════════════════════════════════
+# Optional - للأمان المتقدم
+# ═══════════════════════════════════════════════════════════════════
+
+# Sentry - لمراقبة الأخطاء
+# sentry-sdk==1.38.0
+
+# Redis - للـ Caching & Rate Limiting
+# redis==5.0.1
+# django-redis==5.4.0
+
+# Celery - للمهام الخلفية
+# celery==5.3.4
+
+# Django Security Tools
+# django-ratelimit==4.1.0
+# django-defender==0.9.5
+
+# Environment-specific configs
+# django-environ==0.11.2
+
+# ═══════════════════════════════════════════════════════════════════
+# Development Only (not needed in production)
+# ═══════════════════════════════════════════════════════════════════
+
+# pytest==7.4.3
+# pytest-django==4.7.0
+# django-debug-toolbar==4.2.0
+# faker==20.1.0

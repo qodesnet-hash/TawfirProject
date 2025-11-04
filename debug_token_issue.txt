@@ -1,0 +1,40 @@
+// تشخيص سريع للمشكلة:
+
+المشكلة: التوكن لا يُرسل مع الطلب رغم أنه موجود
+
+السبب المحتمل: الـ Interceptor لا يعمل أو Storage غير مهيأ
+
+الحل السريع:
+
+بما أن لديك التوكن في console بالفعل، دعنا نتأكد من أنه يُقرأ بشكل صحيح.
+
+افتح DevTools Console واكتب:
+
+```javascript
+// افحص إذا كان التوكن محفوظ فعلاً
+await window.indexedDB.databases()
+```
+
+إذا ظهر قاعدة بيانات باسم _ionicstorage، معناها Storage يعمل.
+
+الآن اكتب:
+```javascript
+// افتح Storage مباشرة
+const storage = await import('@ionic/storage');
+const store = new storage.Storage();
+await store.create();
+const token = await store.get('auth_token');
+console.log('Token from storage:', token);
+```
+
+إذا ظهر التوكن، معناها المشكلة في الـ Interceptor وليس في التخزين.
+
+الحل البديل الفوري:
+بما أنك تُرسل headers يدوياً في completeSignup()، تأكد أن الكود يطبع:
+- "Token retrieved: Token exists"  
+- "Full token: eyJh..." (التوكن الكامل)
+- "Authorization header set"
+
+إذا طُبعت كل هذه، لكن مازال الخطأ 401، المشكلة في Backend.
+
+راجع Django logs مرة أخرى - هل يظهر Authorization header في الطلب؟
