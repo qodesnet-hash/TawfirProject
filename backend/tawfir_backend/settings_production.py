@@ -33,7 +33,7 @@ if '*' in ALLOWED_HOSTS and not DEBUG:
 
 if not DEBUG:
     # إجبار HTTPS
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     
@@ -73,7 +73,7 @@ CSRF_TRUSTED_ORIGINS = [
 # ═══════════════════════════════════════════════════════════════════
 
 # لا نستخدم CORS_ALLOW_ALL_ORIGINS أبداً في الإنتاج!
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOW_ALL_ORIGINS = True
 
 if not DEBUG:
     CORS_ALLOWED_ORIGINS = [
@@ -82,11 +82,12 @@ if not DEBUG:
     ]
 else:
     CORS_ALLOWED_ORIGINS = [
-        'http://localhost:8100',
-        'http://127.0.0.1:8100',
-        'capacitor://localhost',
-        'ionic://localhost',
-    ]
+    'http://localhost:8100',
+    'http://127.0.0.1:8100',
+    'https://unabandoning-linwood-cuneately.ngrok-free.dev',
+    'capacitor://localhost',
+    'ionic://localhost',
+]
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
@@ -100,6 +101,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'ngrok-skip-browser-warning',
 ]
 
 # ═══════════════════════════════════════════════════════════════════
