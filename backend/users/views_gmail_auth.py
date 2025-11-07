@@ -84,6 +84,7 @@ class GoogleAuthView(APIView):
     def post(self, request):
         id_token_str = request.data.get('id_token')
         user_type = request.data.get('user_type', 'customer')
+        dev_mode = request.data.get('dev_mode', False)  # 🚀 وضع التطوير
         
         if not id_token_str:
             return Response({
@@ -92,25 +93,35 @@ class GoogleAuthView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # ══════════════════════════════════════════════════════════
-        # SECURITY: Verify Google Token
+        # 🚀 DEVELOPMENT MODE: تخطي التحقق من Google Token
         # ══════════════════════════════════════════════════════════
-        
-        is_valid, result = verify_google_token(id_token_str)
-        
-        if not is_valid:
-            logger.warning(f"Invalid Google token attempt: {result}")
-            return Response({
-                'error': 'رمز Google غير صالح',
-                'error_en': 'Invalid Google token',
-                'details': str(result)
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        
-        # استخراج البيانات من التوكن المُتحقق منه
-        google_payload = result
-        email = google_payload.get('email')
-        full_name = google_payload.get('name', '')
-        google_id = google_payload.get('sub')  # Google User ID
-        email_verified = google_payload.get('email_verified', False)
+        if dev_mode and settings.DEBUG:
+            logger.warning("⚠️ DEV MODE: Skipping Google token verification")
+            email = request.data.get('email')
+            full_name = request.data.get('name', 'Dev User')
+            google_id = f"dev_{email}_{timezone.now().timestamp()}"
+            email_verified = True
+        else:
+            # ══════════════════════════════════════════════════════════
+            # SECURITY: Verify Google Token
+            # ══════════════════════════════════════════════════════════
+            
+            is_valid, result = verify_google_token(id_token_str)
+            
+            if not is_valid:
+                logger.warning(f"Invalid Google token attempt: {result}")
+                return Response({
+                    'error': 'رمز Google غير صالح',
+                    'error_en': 'Invalid Google token',
+                    'details': str(result)
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # استخراج البيانات من التوكن المُتحقق منه
+            google_payload = result
+            email = google_payload.get('email')
+            full_name = google_payload.get('name', '')
+            google_id = google_payload.get('sub')  # Google User ID
+            email_verified = google_payload.get('email_verified', False)
         
         if not email:
             return Response({
@@ -118,7 +129,7 @@ class GoogleAuthView(APIView):
                 'error_en': 'Email required'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        if not email_verified:
+        if not email_verified and not dev_mode:
             logger.warning(f"Unverified email attempt: {email}")
             return Response({
                 'error': 'البريد الإلكتروني غير موثق من Google',

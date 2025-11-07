@@ -6,7 +6,7 @@ from django.db.models import Avg, Count
 class CitySerializer(serializers.ModelSerializer):
     class Meta:
         model = City
-        fields = ['id', 'name', 'image']
+        fields = ['id', 'name', 'governorate', 'image']
 
 class OfferImageSerializer(serializers.ModelSerializer):
     class Meta:

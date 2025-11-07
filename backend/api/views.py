@@ -19,9 +19,15 @@ import random
 
 
 class CityListView(generics.ListAPIView):
-    queryset = City.objects.filter(is_active=True)
     serializer_class = CitySerializer
     permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = City.objects.filter(is_active=True)
+        governorate = self.request.query_params.get('governorate', None)
+        if governorate:
+            queryset = queryset.filter(governorate_id=governorate)
+        return queryset
 
 class OfferListView(generics.ListAPIView):
     serializer_class = OfferSerializer
