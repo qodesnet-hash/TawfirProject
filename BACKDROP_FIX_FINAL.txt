@@ -1,0 +1,29 @@
+// تم التعديل على date-backdrop فقط:
+// 1. إزالة backdrop-filter: blur(2px) - لمنع التأثير الضبابي على date-menu
+// 2. إزالة pointer-events: none
+// 3. تغيير z-index إلى 90 (أقل من date-menu الذي له z-index: 100)
+
+// الآن افتح الملف auth-gmail.page.scss
+// وابحث عن السطر 619 تقريباً:
+
+// .date-backdrop {
+
+// واستبدل الكود الكامل للـ .date-backdrop بهذا:
+
+.date-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 90;
+  animation: fadeIn 0.3s;
+}
+
+// هذا كل شيء! احذف:
+// - backdrop-filter: blur(2px);
+// - pointer-events: none;
+// - z-index: 50 !important;
+
+// واستخدم فقط z-index: 90

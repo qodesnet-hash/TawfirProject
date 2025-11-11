@@ -219,19 +219,22 @@ class CompleteProfileView(APIView):
     def post(self, request):
         user = request.user  # ✅ من المستخدم المصادق عليه
         
-        logger.info(f"Profile completion attempt for user: {user.email}")
+        logger.info(f"📝 Profile completion attempt for user: {user.email}")
+        logger.info(f"📝 Received data: {request.data}")
         
         data = request.data
         
         try:
             # التحقق من الحقول المطلوبة
             if not data.get('phone_number'):
+                logger.warning('⚠️ Missing phone_number')
                 return Response({
                     'error': 'رقم الجوال مطلوب',
                     'error_en': 'Phone number required'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             if not data.get('city_id'):
+                logger.warning('⚠️ Missing city_id')
                 return Response({
                     'error': 'المدينة مطلوبة',
                     'error_en': 'City required'
@@ -240,14 +243,18 @@ class CompleteProfileView(APIView):
             # تحديث الاسم
             if data.get('full_name'):
                 user.full_name = data['full_name']
+                logger.info(f"✅ Updated full_name: {user.full_name}")
             
             # التحقق من رقم الهاتف
             phone = data['phone_number']
             if phone.startswith('0'):
                 phone = phone[1:]
             
+            logger.info(f"📱 Processing phone: {phone}")
+            
             # التحقق من عدم تكرار رقم الهاتف
             if User.objects.exclude(id=user.id).filter(phone_number=phone).exists():
+                logger.warning(f'⚠️ Phone number already exists: {phone}')
                 return Response({
                     'error': 'رقم الجوال مستخدم بالفعل',
                     'error_en': 'Phone number already in use'
@@ -258,9 +265,19 @@ class CompleteProfileView(APIView):
             # تحديث المدينة
             from api.models import City
             try:
-                city = City.objects.get(id=data['city_id'])
+                city_id = int(data['city_id'])
+                logger.info(f"🏙️ Looking for city ID: {city_id}")
+                city = City.objects.get(id=city_id)
                 user.city = city
+                logger.info(f"✅ City set: {city.name}")
+            except ValueError:
+                logger.error(f'❌ Invalid city_id format: {data["city_id"]}')
+                return Response({
+                    'error': 'رقم المدينة غير صحيح',
+                    'error_en': 'Invalid city ID format'
+                }, status=status.HTTP_400_BAD_REQUEST)
             except City.DoesNotExist:
+                logger.error(f'❌ City not found: {city_id}')
                 return Response({
                     'error': 'المدينة غير موجودة',
                     'error_en': 'City not found'
@@ -269,13 +286,22 @@ class CompleteProfileView(APIView):
             # حقول اختيارية
             if data.get('date_of_birth'):
                 user.date_of_birth = data['date_of_birth']
+                logger.info(f"📅 Updated date_of_birth: {user.date_of_birth}")
             
             if data.get('address'):
                 user.address = data['address']
+                logger.info(f"🏠 Updated address: {user.address}")
+            
+            if data.get('latitude'):
+                user.latitude = data['latitude']
+                logger.info(f"📍 Updated latitude: {user.latitude}")
+            
+            if data.get('longitude'):
+                user.longitude = data['longitude']
+                logger.info(f"📍 Updated longitude: {user.longitude}")
             
             user.save()
-            
-            logger.info(f"Profile completed successfully for: {user.email}")
+            logger.info(f"✅✅✅ Profile saved successfully for: {user.email}")
             
             # تحديث طلب التاجر إن وجد
             if user.is_merchant:
@@ -286,6 +312,7 @@ class CompleteProfileView(APIView):
                         merchant_request.phone = user.phone_number
                         merchant_request.address = user.address or ''
                         merchant_request.save()
+                        logger.info(f"✅ Merchant request updated")
                 except Exception as e:
                     logger.error(f"Could not update merchant request: {e}")
             
@@ -305,7 +332,7 @@ class CompleteProfileView(APIView):
             })
             
         except Exception as e:
-            logger.error(f"Profile completion error for {user.email}: {e}", exc_info=True)
+            logger.error(f"❌❌❌ Profile completion error for {user.email}: {e}", exc_info=True)
             return Response({
                 'error': 'حدث خطأ في تحديث البيانات',
                 'error_en': 'Update error',
