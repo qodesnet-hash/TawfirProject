@@ -285,8 +285,18 @@ class CompleteProfileView(APIView):
             
             # حقول اختيارية
             if data.get('date_of_birth'):
-                user.date_of_birth = data['date_of_birth']
-                logger.info(f"📅 Updated date_of_birth: {user.date_of_birth}")
+                try:
+                    # تحويل ISO format إلى date only
+                    from datetime import datetime
+                    date_str = data['date_of_birth']
+                    if 'T' in date_str:  # ISO format
+                        date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                        user.date_of_birth = date_obj.date()  # استخدام date فقط
+                    else:
+                        user.date_of_birth = date_str
+                    logger.info(f"📅 Updated date_of_birth: {user.date_of_birth}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Invalid date format: {data['date_of_birth']}, error: {e}")
             
             if data.get('address'):
                 user.address = data['address']
