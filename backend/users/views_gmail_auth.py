@@ -421,6 +421,8 @@ def user_profile(request):
             'email': user.email,
             'full_name': user.full_name,
             'phone_number': user.phone_number,
+            'date_of_birth': user.date_of_birth.isoformat() if user.date_of_birth else None,
+            'profile_picture': user.profile_picture.url if user.profile_picture else None,
             'user_type': user.user_type,
             'is_verified': user.is_verified,
             'merchant_verified': user.merchant_verified,
