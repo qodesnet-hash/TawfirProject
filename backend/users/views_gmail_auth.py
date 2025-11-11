@@ -434,6 +434,53 @@ def user_profile(request):
     })
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_profile_picture(request):
+    """
+    رفع صورة الملف الشخصي
+    """
+    user = request.user
+    
+    if 'profile_picture' not in request.FILES:
+        return Response({
+            'error': 'الصورة مطلوبة',
+            'error_en': 'Profile picture required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # حذف الصورة القديمة إن وجدت
+        if user.profile_picture:
+            try:
+                import os
+                if os.path.isfile(user.profile_picture.path):
+                    os.remove(user.profile_picture.path)
+                    logger.info(f'Deleted old profile picture: {user.profile_picture.path}')
+            except Exception as e:
+                logger.warning(f'Could not delete old picture: {e}')
+        
+        # حفظ الصورة الجديدة
+        user.profile_picture = request.FILES['profile_picture']
+        user.save()
+        
+        logger.info(f'Profile picture updated for user: {user.email}')
+        
+        return Response({
+            'success': True,
+            'message': 'تم رفع الصورة بنجاح',
+            'message_en': 'Profile picture uploaded successfully',
+            'profile_picture': user.profile_picture.url
+        })
+        
+    except Exception as e:
+        logger.error(f'Error uploading profile picture: {e}', exc_info=True)
+        return Response({
+            'error': 'حدث خطأ في رفع الصورة',
+            'error_en': 'Upload error',
+            'details': str(e) if settings.DEBUG else 'Internal server error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def check_profile_status(request):
