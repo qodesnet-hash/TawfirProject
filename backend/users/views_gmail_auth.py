@@ -442,7 +442,26 @@ def upload_profile_picture(request):
     """
     user = request.user
     
-    if 'profile_picture' not in request.FILES:
+    # دعم كلا الطريقتين: FormData و base64
+    if 'profile_picture' in request.FILES:
+        # طريقة FormData التقليدية
+        profile_picture_file = request.FILES['profile_picture']
+    elif 'profile_picture_base64' in request.data:
+        # طريقة base64
+        import base64
+        from django.core.files.base import ContentFile
+        
+        try:
+            base64_data = request.data['profile_picture_base64']
+            image_data = base64.b64decode(base64_data)
+            profile_picture_file = ContentFile(image_data, name='profile.jpg')
+        except Exception as e:
+            logger.error(f'Error decoding base64: {e}')
+            return Response({
+                'error': 'خطأ في معالجة الصورة',
+                'error_en': 'Error processing image'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    else:
         return Response({
             'error': 'الصورة مطلوبة',
             'error_en': 'Profile picture required'
@@ -460,7 +479,7 @@ def upload_profile_picture(request):
                 logger.warning(f'Could not delete old picture: {e}')
         
         # حفظ الصورة الجديدة
-        user.profile_picture = request.FILES['profile_picture']
+        user.profile_picture = profile_picture_file
         user.save()
         
         logger.info(f'Profile picture updated for user: {user.email}')
