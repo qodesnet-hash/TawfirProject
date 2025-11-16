@@ -545,3 +545,31 @@ def check_profile_status(request):
         'is_verified': user.is_verified,
         'is_merchant_verified': user.is_verified_merchant if user.is_merchant else None
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    """
+    🚪 Logout - Blacklist the refresh token
+    """
+    try:
+        refresh_token = request.data.get('refresh_token')
+        if refresh_token:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            logger.info(f'Token blacklisted for user: {request.user.email}')
+            
+        return Response({
+            'success': True,
+            'message': 'تم تسجيل الخروج بنجاح',
+            'message_en': 'Logged out successfully'
+        })
+    except Exception as e:
+        logger.error(f'Logout error: {e}')
+        return Response({
+            'success': True,
+            'message': 'تم تسجيل الخروج'
+        })
+
+

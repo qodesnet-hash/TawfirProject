@@ -1,4 +1,5 @@
 from rest_framework import generics
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -68,19 +69,44 @@ class FavoriteListView(generics.ListAPIView):
 
 class FavoriteToggleView(APIView):
     permission_classes = [IsAuthenticated]
-
+    
     def post(self, request, offer_id):
+        """Toggle favorite (add or remove)"""
         offer = get_object_or_404(Offer, pk=offer_id)
         favorite, created = Favorite.objects.get_or_create(
             user=request.user,
             offer=offer
         )
-        
         if not created:
             favorite.delete()
-            return Response({'status': 'removed', 'message': 'تم إزالة العرض من المفضلة'})
-        
-        return Response({'status': 'added', 'message': 'تم إضافة العرض إلى المفضلة'})
+            return Response({
+                'status': 'removed', 
+                'message': 'تم إزالة العرض من المفضلة'
+            })
+        return Response({
+            'status': 'added', 
+            'message': 'تم إضافة العرض إلى المفضلة'
+        })
+    
+    def delete(self, request, offer_id):
+        """Remove from favorites"""
+        try:
+            favorite = Favorite.objects.get(
+                user=request.user, 
+                offer_id=offer_id
+            )
+            favorite.delete()
+            return Response({
+                'status': 'removed',
+                'success': True,
+                'message': 'تم إزالة العرض من المفضلة'
+            }, status=status.HTTP_200_OK)
+        except Favorite.DoesNotExist:
+            return Response({
+                'error': 'العرض غير موجود في المفضلة',
+                'status': 'not_found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
 
 # Views للمتاجر
 class TopMerchantsView(generics.ListAPIView):
