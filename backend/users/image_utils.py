@@ -1,86 +1,131 @@
 """
 Image Processing Utilities
-معالجة وضغط الصور
+معالجة وضغط الصور - يستخدم نفس نظام utils.image_optimizer
 """
 
-from PIL import Image
-from io import BytesIO
-from django.core.files.uploadedfile import InMemoryUploadedFile
 import sys
+import logging
 
+logger = logging.getLogger(__name__)
 
-def compress_image(uploaded_file, max_width=800, quality=85):
-    """
-    ضغط الصورة وتصغير حجمها
-    
-    Args:
-        uploaded_file: الملف المرفوع
-        max_width: أقصى عرض للصورة (الافتراضي 800px)
-        quality: جودة الضغط (1-100، الافتراضي 85)
-    
-    Returns:
-        InMemoryUploadedFile: الصورة المضغوطة
-    """
-    try:
-        # فتح الصورة
-        img = Image.open(uploaded_file)
-        
-        # تحويل RGBA إلى RGB إذا لزم الأمر
-        if img.mode in ('RGBA', 'LA', 'P'):
-            background = Image.new('RGB', img.size, (255, 255, 255))
-            if img.mode == 'P':
-                img = img.convert('RGBA')
-            background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-            img = background
-        
-        # تصغير الصورة إذا كانت أكبر من max_width
-        if img.width > max_width:
-            ratio = max_width / img.width
-            new_height = int(img.height * ratio)
-            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
-        
-        # حفظ الصورة المضغوطة
-        output = BytesIO()
-        img.save(output, format='JPEG', quality=quality, optimize=True)
-        output.seek(0)
-        
-        # إنشاء ملف جديد
-        compressed_file = InMemoryUploadedFile(
-            output,
-            'ImageField',
-            f"{uploaded_file.name.split('.')[0]}.jpg",
-            'image/jpeg',
-            sys.getsizeof(output),
-            None
-        )
-        
-        return compressed_file
-        
-    except Exception as e:
-        print(f'❌ Error compressing image: {e}')
-        # في حالة الفشل، إرجاع الملف الأصلي
-        return uploaded_file
+# استيراد من النظام الموجود
+try:
+    from utils.image_optimizer import optimize_image as base_optimize_image
+    from utils.image_optimizer import validate_image_size
+    OPTIMIZER_AVAILABLE = True
+except ImportError:
+    logger.warning("⚠️ utils.image_optimizer not found, using fallback")
+    OPTIMIZER_AVAILABLE = False
 
 
 def compress_profile_picture(uploaded_file):
     """
     ضغط صورة الملف الشخصي
-    حجم أصغر للبروفايل (500px)
+    حجم صغير للبروفايل (500px، جودة 85%)
     """
-    return compress_image(uploaded_file, max_width=500, quality=85)
+    if not OPTIMIZER_AVAILABLE:
+        logger.warning("Image optimizer not available, returning original file")
+        return uploaded_file
+    
+    logger.info('📸 Compressing profile picture...')
+    
+    # التحقق من الحجم أولاً
+    is_valid, error_msg = validate_image_size(uploaded_file, max_size_mb=3)
+    if not is_valid:
+        logger.error(f'❌ Validation failed: {error_msg}')
+        from django.core.exceptions import ValidationError
+        raise ValidationError(error_msg)
+    
+    # ضغط الصورة
+    return base_optimize_image(
+        uploaded_file,
+        max_size=(500, 500),
+        quality=85,
+        max_file_size_kb=150  # 150KB max للبروفايل
+    )
 
 
 def compress_merchant_logo(uploaded_file):
     """
     ضغط شعار المتجر
-    حجم متوسط (600px)
+    حجم متوسط مع جودة عالية (600px، جودة 90%)
     """
-    return compress_image(uploaded_file, max_width=600, quality=85)
+    if not OPTIMIZER_AVAILABLE:
+        logger.warning("Image optimizer not available, returning original file")
+        return uploaded_file
+    
+    logger.info('🏪 Compressing merchant logo...')
+    
+    is_valid, error_msg = validate_image_size(uploaded_file, max_size_mb=3)
+    if not is_valid:
+        logger.error(f'❌ Validation failed: {error_msg}')
+        from django.core.exceptions import ValidationError
+        raise ValidationError(error_msg)
+    
+    return base_optimize_image(
+        uploaded_file,
+        max_size=(600, 600),
+        quality=90,
+        max_file_size_kb=250  # 250KB max للشعار
+    )
 
 
 def compress_offer_image(uploaded_file):
     """
     ضغط صورة العرض
-    حجم أكبر قليلاً (1000px)
+    حجم أكبر للعروض (1000px، جودة 88%)
     """
-    return compress_image(uploaded_file, max_width=1000, quality=88)
+    if not OPTIMIZER_AVAILABLE:
+        logger.warning("Image optimizer not available, returning original file")
+        return uploaded_file
+    
+    logger.info('🎁 Compressing offer image...')
+    
+    is_valid, error_msg = validate_image_size(uploaded_file, max_size_mb=5)
+    if not is_valid:
+        logger.error(f'❌ Validation failed: {error_msg}')
+        from django.core.exceptions import ValidationError
+        raise ValidationError(error_msg)
+    
+    return base_optimize_image(
+        uploaded_file,
+        max_size=(1000, 1000),
+        quality=88,
+        max_file_size_kb=400  # 400KB max للعروض
+    )
+
+
+def compress_city_image(uploaded_file):
+    """
+    ضغط صورة المدينة/المحافظة
+    حجم متوسط (800px، جودة 85%)
+    """
+    if not OPTIMIZER_AVAILABLE:
+        logger.warning("Image optimizer not available, returning original file")
+        return uploaded_file
+    
+    logger.info('🏙️ Compressing city/governorate image...')
+    
+    is_valid, error_msg = validate_image_size(uploaded_file, max_size_mb=3)
+    if not is_valid:
+        logger.error(f'❌ Validation failed: {error_msg}')
+        from django.core.exceptions import ValidationError
+        raise ValidationError(error_msg)
+    
+    return base_optimize_image(
+        uploaded_file,
+        max_size=(800, 800),
+        quality=85,
+        max_file_size_kb=300  # 300KB max
+    )
+
+
+# Re-export من النظام الأساسي
+if OPTIMIZER_AVAILABLE:
+    __all__ = [
+        'compress_profile_picture',
+        'compress_merchant_logo', 
+        'compress_offer_image',
+        'compress_city_image',
+        'validate_image_size'
+    ]
