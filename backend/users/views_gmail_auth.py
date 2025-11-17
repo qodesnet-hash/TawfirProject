@@ -167,6 +167,24 @@ class GoogleAuthView(APIView):
                 refresh = RefreshToken.for_user(user)
                 access_token = str(refresh.access_token)
                 
+                # ✅ حفظ في OutstandingToken
+                try:
+                    from django.db import connection
+                    jti = refresh.payload.get('jti')
+                    exp = refresh.payload.get('exp')
+                    
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            """INSERT INTO token_blacklist_outstandingtoken 
+                               (user_id, jti, token, created_at, expires_at) 
+                               VALUES (%s, %s, %s, NOW(), to_timestamp(%s))
+                               ON CONFLICT (jti) DO NOTHING""",
+                            [user.id, jti, str(refresh), exp]
+                        )
+                    logger.info(f'✅ Outstanding token saved for {user.email}')
+                except Exception as e:
+                    logger.warning(f'⚠️ Could not save outstanding token: {e}')
+                
                 needs_completion = user.needs_profile_completion
                 
                 # إنشاء طلب تاجر إذا لزم الأمر
@@ -547,29 +565,59 @@ def check_profile_status(request):
     })
 
 
+
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def logout_view(request):
     """
     🚪 Logout - Blacklist the refresh token
     """
+    refresh_token = request.data.get('refresh_token')
+    
+    # حاول الحصول على user من token
+    user_email = "Unknown"
     try:
-        refresh_token = request.data.get('refresh_token')
-        if refresh_token:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            logger.info(f'Token blacklisted for user: {request.user.email}')
+        if request.user.is_authenticated:
+            user_email = request.user.email
+    except:
+        pass
+    
+    print(f'🚪 Logout for: {user_email}')  # ✅ print بدلاً من logger
+    
+    if not refresh_token:
+        return Response({'success': True, 'message': 'تم تسجيل الخروج'})
+    
+    try:
+        from django.db import connection
+        
+        token = RefreshToken(refresh_token)
+        jti = token.payload.get('jti')
+        print(f'🔑 JTI: {jti}')
+        
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT id FROM token_blacklist_outstandingtoken WHERE jti = %s LIMIT 1",
+                [jti]
+            )
+            row = cursor.fetchone()
             
-        return Response({
-            'success': True,
-            'message': 'تم تسجيل الخروج بنجاح',
-            'message_en': 'Logged out successfully'
-        })
+            if row:
+                outstanding_id = row[0]
+                print(f'🔍 Found outstanding token: {outstanding_id}')
+                
+                cursor.execute(
+                    "INSERT INTO token_blacklist_blacklistedtoken (token_id, blacklisted_at) VALUES (%s, NOW()) ON CONFLICT DO NOTHING",
+                    [outstanding_id]
+                )
+                print(f'✅ Token blacklisted!')
+            else:
+                print(f'⚠️ Outstanding token not found')
+        
+        return Response({'success': True, 'message': 'تم تسجيل الخروج بنجاح'})
     except Exception as e:
-        logger.error(f'Logout error: {e}')
-        return Response({
-            'success': True,
-            'message': 'تم تسجيل الخروج'
-        })
+        print(f'❌ Error: {e}')
+        import traceback
+        print(traceback.format_exc())
+        return Response({'success': True, 'message': 'تم تسجيل الخروج'})
 
 
