@@ -456,7 +456,7 @@ def user_profile(request):
 @permission_classes([IsAuthenticated])
 def upload_profile_picture(request):
     """
-    رفع صورة الملف الشخصي
+    رفع صورة الملف الشخصي مع الضغط التلقائي
     """
     user = request.user
     
@@ -486,6 +486,18 @@ def upload_profile_picture(request):
         }, status=status.HTTP_400_BAD_REQUEST)
     
     try:
+        # ضغط الصورة قبل الحفظ
+        from .image_utils import compress_profile_picture
+        
+        original_size = profile_picture_file.size
+        logger.info(f'Original image size: {original_size / 1024:.2f} KB')
+        
+        compressed_file = compress_profile_picture(profile_picture_file)
+        compressed_size = compressed_file.size if hasattr(compressed_file, 'size') else 0
+        
+        logger.info(f'Compressed image size: {compressed_size / 1024:.2f} KB')
+        logger.info(f'Compression ratio: {(1 - compressed_size/original_size) * 100:.1f}%')
+        
         # حذف الصورة القديمة إن وجدت
         if user.profile_picture:
             try:
@@ -496,17 +508,19 @@ def upload_profile_picture(request):
             except Exception as e:
                 logger.warning(f'Could not delete old picture: {e}')
         
-        # حفظ الصورة الجديدة
-        user.profile_picture = profile_picture_file
+        # حفظ الصورة المضغوطة
+        user.profile_picture = compressed_file
         user.save()
         
-        logger.info(f'Profile picture updated for user: {user.email}')
+        logger.info(f'✅ Compressed profile picture saved for user: {user.email}')
         
         return Response({
             'success': True,
             'message': 'تم رفع الصورة بنجاح',
             'message_en': 'Profile picture uploaded successfully',
-            'profile_picture': user.profile_picture.url
+            'profile_picture': user.profile_picture.url,
+            'original_size_kb': round(original_size / 1024, 2),
+            'compressed_size_kb': round(compressed_size / 1024, 2) if compressed_size else 0
         })
         
     except Exception as e:
