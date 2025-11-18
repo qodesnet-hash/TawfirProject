@@ -277,6 +277,7 @@ class MerchantRequest(models.Model):
     )
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    merchant = models.ForeignKey(Merchant, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="حساب التاجر")
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(null=True, blank=True)
@@ -300,6 +301,7 @@ class MerchantRequest(models.Model):
             )
             self.status = 'approved'
             self.reviewed_at = timezone.now()
+            self.merchant = merchant
             self.save()
             
             # تحديث نوع المستخدم
@@ -375,3 +377,46 @@ class OnlineUsersSettings(models.Model):
 
 # ============= Notifications Models =============
 from .models_notifications import FCMToken, Notification
+
+# ============= Signals =============
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=MerchantRequest)
+def auto_create_merchant_on_approval(sender, instance, created, **kwargs):
+    """
+    إنشاء حساب تاجر تلقائياً عند الموافقة على الطلب
+    """
+    # تجاهل الإنشاء الجديد - فقط عند التحديث
+    if created:
+        return
+    
+    # التحقق من أن الحالة أصبحت 'approved'
+    if instance.status == 'approved':
+        # التحقق من عدم وجود Merchant لهذا المستخدم
+        if not Merchant.objects.filter(user=instance.user).exists():
+            # إنشاء Merchant جديد
+            merchant = Merchant.objects.create(
+                user=instance.user,
+                business_name=instance.business_name,
+                phone=instance.phone,
+                address=instance.address,
+                governorate=instance.governorate,
+                city=instance.city,
+                status='مقبول'
+            )
+            
+            # ربط الطلب بالتاجر
+            instance.merchant = merchant
+            instance.reviewed_at = timezone.now()
+            # استخدام update_fields لتجنب infinite loop
+            MerchantRequest.objects.filter(pk=instance.pk).update(
+                merchant=merchant,
+                reviewed_at=timezone.now()
+            )
+            
+            # تحديث نوع المستخدم
+            instance.user.user_type = 'merchant'
+            instance.user.save()
+            
+            print(f"✅ Auto-created Merchant for: {instance.user.email} - {instance.business_name}")
