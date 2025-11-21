@@ -120,13 +120,24 @@ class CategoryAdmin(admin.ModelAdmin):
     list_filter = ['is_active']
     search_fields = ['name', 'name_en']
     
+    class Media:
+        css = {
+            'all': ('https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.css',)
+        }
+        js = (
+            'https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.esm.js',
+            'https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.js',
+        )
+    
     def get_icon_display(self, obj):
         if obj.icon:
             return format_html(
-                '<ion-icon name="{}" style="font-size: 24px; color: {};"></ion-icon>',
-                obj.icon, obj.color
+                '<ion-icon name="{}" style="font-size: 32px; color: {}; vertical-align: middle;"></ion-icon>',
+                obj.icon, obj.color or '#666'
             )
-        return '-'
+        return format_html(
+            '<span style="color: #999; font-size: 12px;">—</span>'
+        )
     get_icon_display.short_description = 'الأيقونة'
     
     def get_offers_count(self, obj):
