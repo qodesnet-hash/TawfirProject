@@ -115,30 +115,43 @@ class GovernorateAdmin(admin.ModelAdmin):
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     """إدارة الفئات"""
-    list_display = ['get_icon_display', 'name', 'name_en', 'get_offers_count', 'get_color_display', 'order', 'is_active']
+    list_display = ['get_icon_display', 'get_name_link', 'name_en', 'get_offers_count', 'get_color_display', 'order', 'is_active']
     list_editable = ['order', 'is_active']
     list_filter = ['is_active']
     search_fields = ['name', 'name_en']
     
     class Media:
-        css = {
-            'all': ('https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.css',)
-        }
         js = (
-            'https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.esm.js',
-            'https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.js',
+            'https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js',
         )
     
     def get_icon_display(self, obj):
         if obj.icon:
             return format_html(
-                '<ion-icon name="{}" style="font-size: 32px; color: {}; vertical-align: middle;"></ion-icon>',
-                obj.icon, obj.color or '#666'
+                '<span style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: {}15; border-radius: 8px;">' 
+                '<ion-icon name="{}" style="font-size: 24px; color: {};"></ion-icon>'
+                '</span>',
+                obj.color or '#666',
+                obj.icon,
+                obj.color or '#666'
             )
         return format_html(
             '<span style="color: #999; font-size: 12px;">—</span>'
         )
     get_icon_display.short_description = 'الأيقونة'
+    
+    def get_name_link(self, obj):
+        """عرض الاسم مع رابط للتعديل"""
+        from django.urls import reverse
+        from django.utils.html import format_html
+        url = reverse('admin:api_category_change', args=[obj.pk])
+        return format_html(
+            '<a href="{}" style="font-weight: 600; color: #2563eb; text-decoration: none;">{}</a>',
+            url,
+            obj.name
+        )
+    get_name_link.short_description = 'الفئة'
+    get_name_link.admin_order_field = 'name'
     
     def get_offers_count(self, obj):
         count = obj.offers_count
