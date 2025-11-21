@@ -276,41 +276,25 @@ class MerchantOfferUpdateView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # التحقق من وجود status في البيانات
-        if 'status' in request.data:
-            new_status = request.data.get('status')
-            print(f'🔄 Updating offer {offer_id} status from {offer.status} to {new_status}')
-            
-            # التحقق من أن القيمة صحيحة
-            valid_statuses = ['مقبول', 'مسودة', 'منتهي']
-            if new_status in valid_statuses:
-                offer.status = new_status
-                offer.save()
-                
-                # إرجاع البيانات المحدثة
-                serializer = OfferManagementSerializer(offer)
-                return Response({
-                    'message': f'تم تحديث حالة العرض إلى {new_status}',
-                    'offer': serializer.data
-                }, status=status.HTTP_200_OK)
-            else:
-                return Response(
-                    {'error': f'الحالة غير صحيحة. يجب أن تكون أحد القيم: {", ".join(valid_statuses)}'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        
-        # إذا لم يكن هناك status، استخدم الطريقة العادية
+        # تحديث جميع الحقول
         serializer = OfferManagementSerializer(offer, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             
+            # تحديث الصور إذا وجدت
             images = request.FILES.getlist('images')
             if images:
+                # حذف الصور القديمة
                 offer.images.all().delete()
+                # إضافة الصور الجديدة
                 for image in images:
                     OfferImage.objects.create(offer=offer, image=image)
             
-            return Response(serializer.data)
+            return Response({
+                'message': 'تم تحديث العرض بنجاح',
+                'offer': serializer.data
+            }, status=status.HTTP_200_OK)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class MerchantOfferDeleteView(APIView):
