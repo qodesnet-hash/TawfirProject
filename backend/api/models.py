@@ -173,6 +173,7 @@ class Offer(models.Model):
     city = models.ForeignKey(City, on_delete=models.PROTECT, verbose_name="المدينة")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='مسودة')
     is_featured = models.BooleanField(default=False, verbose_name="عرض مميز؟")
+    featured_until = models.DateTimeField(null=True, blank=True, verbose_name="مميز حتى")
     created_at = models.DateTimeField(auto_now_add=True)
     views_count = models.IntegerField(default=0, verbose_name="عدد المشاهدات")
 
@@ -546,10 +547,51 @@ class FeaturedRequest(models.Model):
         if self.status == 'active' and self.end_date and timezone.now() > self.end_date:
             self.status = 'expired'
             self.offer.is_featured = False
+            self.offer.featured_until = None
             self.offer.save()
             self.save()
             return True
         return False
+    
+    def save(self, *args, **kwargs):
+        """
+        حفظ الطلب مع Auto-Activation
+        عندما يتغير status إلى 'active':
+        - يفعّل offer.is_featured = True
+        - يحدد offer.featured_until = end_date
+        - يضبط start_date و end_date
+        """
+        # التحقق من التغيير من pending إلى active
+        if self.pk:
+            old_instance = FeaturedRequest.objects.filter(pk=self.pk).first()
+            if old_instance:
+                # Auto-Activation: pending → active
+                if old_instance.status != 'active' and self.status == 'active':
+                    from datetime import timedelta
+                    # ضبط التواريخ
+                    if not self.start_date:
+                        self.start_date = timezone.now()
+                    if not self.end_date:
+                        self.end_date = self.start_date + timedelta(days=self.plan.duration_days)
+                    if not self.reviewed_at:
+                        self.reviewed_at = timezone.now()
+                    
+                    # تفعيل العرض كمميز
+                    self.offer.is_featured = True
+                    self.offer.featured_until = self.end_date
+                    self.offer.save()
+                    
+                    print(f"✅ Auto-Activated Featured Ad: {self.offer.title} until {self.end_date}")
+                
+                # Auto-Deactivation: active → rejected/expired
+                elif old_instance.status == 'active' and self.status in ['rejected', 'expired']:
+                    self.offer.is_featured = False
+                    self.offer.featured_until = None
+                    self.offer.save()
+                    
+                    print(f"❌ Auto-Deactivated Featured Ad: {self.offer.title}")
+        
+        super().save(*args, **kwargs)
 
 # ============= Notifications Models =============
 from .models_notifications import FCMToken, Notification
