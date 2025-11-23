@@ -359,21 +359,30 @@ class FeaturedPlanAdmin(admin.ModelAdmin):
     get_plan_icon.short_description = ''
     
     def get_price_display(self, obj):
-        if obj.discount_percentage > 0:
+        try:
+            if obj.discount_percentage > 0:
+                discounted = float(obj.discounted_price)
+                original = float(obj.price)
+                # Format numbers first, then pass to format_html
+                original_formatted = f"{original:,.0f}"
+                discounted_formatted = f"{discounted:,.0f}"
+                return format_html(
+                    '<div>'
+                    '<span style="text-decoration: line-through; color: #999; font-size: 12px;">{} ر.ي</span><br>'
+                    '<span style="color: #10b981; font-weight: bold;">{} ر.ي</span> '
+                    '<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">-{}%</span>'
+                    '</div>',
+                    original_formatted,
+                    discounted_formatted,
+                    obj.discount_percentage
+                )
+            price_formatted = f"{float(obj.price):,.0f}"
             return format_html(
-                '<div>'
-                '<span style="text-decoration: line-through; color: #999; font-size: 12px;">{:,.0f} ر.ي</span><br>'
-                '<span style="color: #10b981; font-weight: bold;">{:,.0f} ر.ي</span> '
-                '<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">-{}%</span>'
-                '</div>',
-                obj.price,
-                obj.discounted_price,
-                obj.discount_percentage
+                '<span style="font-weight: bold;">{} ر.ي</span>',
+                price_formatted
             )
-        return format_html(
-            '<span style="font-weight: bold;">{:,.0f} ر.ي</span>',
-            obj.price
-        )
+        except Exception as e:
+            return str(obj.price)
     get_price_display.short_description = 'السعر'
 
 # ============= Featured Requests Admin =============
