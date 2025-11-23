@@ -217,7 +217,7 @@ class FeaturedPlanSerializer(serializers.ModelSerializer):
         ]
 
 class FeaturedRequestSerializer(serializers.ModelSerializer):
-    """سيرياليزر لطلبات الإعلانات“
+    """سيرياليزر لطلبات الإعلانات"""
     plan = FeaturedPlanSerializer(read_only=True)
     plan_id = serializers.PrimaryKeyRelatedField(
         queryset=FeaturedPlan.objects.filter(is_active=True),
