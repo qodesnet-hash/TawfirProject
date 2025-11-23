@@ -273,5 +273,289 @@ class OnlineUsersSettingsAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+# ============= Payment Accounts Admin =============
+from .models import PaymentAccount, FeaturedPlan, FeaturedRequest
+
+@admin.register(PaymentAccount)
+class PaymentAccountAdmin(admin.ModelAdmin):
+    """إدارة حسابات الدفع"""
+    list_display = ['get_bank_icon', 'bank_name', 'account_name', 'account_number', 'is_active', 'order']
+    list_editable = ['is_active', 'order']
+    list_filter = ['bank_name', 'is_active']
+    search_fields = ['account_name', 'account_number']
+    
+    fieldsets = (
+        ('معلومات الحساب', {
+            'fields': ('bank_name', 'account_name', 'account_number')
+        }),
+        ('QR Code', {
+            'fields': ('qr_code', 'get_qr_preview'),
+            'description': 'ارفع QR Code لرقم الحساب (مختار)'
+        }),
+        ('إعدادات', {
+            'fields': ('is_active', 'order', 'notes')
+        }),
+    )
+    
+    readonly_fields = ['get_qr_preview', 'created_at', 'updated_at']
+    
+    def get_bank_icon(self, obj):
+        icons = {
+            'alkremi': '💳',
+            'alomgy': '🏛️',
+            'cac': '🏦',
+            'tadhamon': '💵',
+            'other': '💰'
+        }
+        icon = icons.get(obj.bank_name, '💰')
+        return format_html(
+            '<span style="font-size: 24px;">{}</span>',
+            icon
+        )
+    get_bank_icon.short_description = ''
+    
+    def get_qr_preview(self, obj):
+        if obj.qr_code:
+            return format_html(
+                '<img src="{}" style="max-width: 200px; border: 2px solid #ddd; border-radius: 8px; padding: 10px;" />',
+                obj.qr_code.url
+            )
+        return 'لم يتم رفع QR Code'
+    get_qr_preview.short_description = 'معاينة QR Code'
+
+# ============= Featured Plans Admin =============
+@admin.register(FeaturedPlan)
+class FeaturedPlanAdmin(admin.ModelAdmin):
+    """إدارة الخطط الإعلانية"""
+    list_display = ['get_plan_icon', 'name', 'duration_days', 'get_price_display', 'estimated_views', 'is_active', 'order']
+    list_editable = ['is_active', 'order']
+    list_filter = ['is_active', 'duration_days']
+    search_fields = ['name']
+    
+    fieldsets = (
+        ('معلومات الخطة', {
+            'fields': ('name', 'duration_days', 'price', 'discount_percentage')
+        }),
+        ('التفاصيل', {
+            'fields': ('estimated_views', 'features'),
+            'description': 'كل ميزة في سطر منفصل'
+        }),
+        ('إعدادات', {
+            'fields': ('is_active', 'order')
+        }),
+    )
+    
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def get_plan_icon(self, obj):
+        if obj.duration_days <= 7:
+            return '📅'  # Calendar
+        elif obj.duration_days <= 14:
+            return '📆'  # Calendar with dates
+        elif obj.duration_days <= 30:
+            return '🗓️'  # Calendar pad
+        else:
+            return '📅'  # Default
+    get_plan_icon.short_description = ''
+    
+    def get_price_display(self, obj):
+        if obj.discount_percentage > 0:
+            return format_html(
+                '<div>'
+                '<span style="text-decoration: line-through; color: #999; font-size: 12px;">{:,.0f} ر.ي</span><br>'
+                '<span style="color: #10b981; font-weight: bold;">{:,.0f} ر.ي</span> '
+                '<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">-{}%</span>'
+                '</div>',
+                obj.price,
+                obj.discounted_price,
+                obj.discount_percentage
+            )
+        return format_html(
+            '<span style="font-weight: bold;">{:,.0f} ر.ي</span>',
+            obj.price
+        )
+    get_price_display.short_description = 'السعر'
+
+# ============= Featured Requests Admin =============
+@admin.register(FeaturedRequest)
+class FeaturedRequestAdmin(admin.ModelAdmin):
+    """إدارة طلبات الإعلانات المميزة"""
+    list_display = [
+        'get_status_badge',
+        'get_merchant_name',
+        'get_offer_title',
+        'plan',
+        'get_receipt_status',
+        'get_dates_info',
+        'get_stats',
+        'created_at'
+    ]
+    
+    list_filter = ['status', 'plan', 'created_at', 'payment_method']
+    search_fields = [
+        'merchant__business_name',
+        'offer__title',
+        'transaction_number'
+    ]
+    
+    fieldsets = (
+        ('معلومات الطلب', {
+            'fields': ('merchant', 'offer', 'plan', 'status')
+        }),
+        ('معلومات الدفع', {
+            'fields': (
+                'payment_method',
+                'transaction_number',
+                'payment_receipt',
+                'get_receipt_preview'
+            )
+        }),
+        ('التواريخ', {
+            'fields': ('start_date', 'end_date', 'get_remaining_time')
+        }),
+        ('الإحصائيات', {
+            'fields': ('views_count', 'favorites_count', 'clicks_count'),
+            'classes': ('collapse',)
+        }),
+        ('ملاحظات الإدارة', {
+            'fields': ('admin_notes', 'rejection_reason'),
+            'classes': ('collapse',)
+        }),
+        ('معلومات النظام', {
+            'fields': ('created_at', 'updated_at', 'reviewed_at'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    readonly_fields = [
+        'created_at',
+        'updated_at',
+        'reviewed_at',
+        'get_receipt_preview',
+        'get_remaining_time'
+    ]
+    
+    actions = ['activate_requests', 'reject_requests']
+    
+    def get_status_badge(self, obj):
+        colors = {
+            'draft': '#6b7280',
+            'pending': '#f59e0b',
+            'active': '#10b981',
+            'rejected': '#ef4444',
+            'expired': '#9ca3af'
+        }
+        icons = {
+            'draft': '📋',
+            'pending': '⏳',
+            'active': '✅',
+            'rejected': '❌',
+            'expired': '⏰'
+        }
+        return format_html(
+            '<span style="background: {}; color: white; padding: 4px 12px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; font-size: 12px;">{} {}</span>',
+            colors.get(obj.status, '#6b7280'),
+            icons.get(obj.status, ''),
+            obj.get_status_display()
+        )
+    get_status_badge.short_description = 'الحالة'
+    
+    def get_merchant_name(self, obj):
+        from django.urls import reverse
+        url = reverse('admin:api_merchant_change', args=[obj.merchant.pk])
+        return format_html(
+            '<a href="{}" style="color: #2563eb; font-weight: 500;">{}</a>',
+            url,
+            obj.merchant.business_name
+        )
+    get_merchant_name.short_description = 'التاجر'
+    
+    def get_offer_title(self, obj):
+        from django.urls import reverse
+        url = reverse('admin:api_offer_change', args=[obj.offer.pk])
+        title = obj.offer.title[:40] + '...' if len(obj.offer.title) > 40 else obj.offer.title
+        return format_html(
+            '<a href="{}" style="color: #10b981;">{}</a>',
+            url,
+            title
+        )
+    get_offer_title.short_description = 'العرض'
+    
+    def get_receipt_status(self, obj):
+        if obj.payment_receipt:
+            return format_html(
+                '<span style="color: #10b981;">✅ تم الرفع</span>'
+            )
+        return format_html(
+            '<span style="color: #ef4444;">❌ لم يتم الرفع</span>'
+        )
+    get_receipt_status.short_description = 'الإيصال'
+    
+    def get_dates_info(self, obj):
+        if obj.start_date and obj.end_date:
+            if obj.is_active:
+                return format_html(
+                    '<div style="font-size: 11px;">📅 {}<br>🎯 باقي {} يوم</div>',
+                    obj.start_date.strftime('%Y-%m-%d'),
+                    obj.days_remaining
+                )
+            return format_html(
+                '<div style="font-size: 11px; color: #999;">{} - {}</div>',
+                obj.start_date.strftime('%Y-%m-%d'),
+                obj.end_date.strftime('%Y-%m-%d')
+            )
+        return '-'
+    get_dates_info.short_description = 'الفترة'
+    
+    def get_stats(self, obj):
+        return format_html(
+            '<div style="font-size: 11px; display: flex; gap: 8px;">👁️ {} ❤️ {} 👆 {}</div>',
+            obj.views_count,
+            obj.favorites_count,
+            obj.clicks_count
+        )
+    get_stats.short_description = 'الإحصائيات'
+    
+    def get_receipt_preview(self, obj):
+        if obj.payment_receipt:
+            if obj.payment_receipt.name.endswith('.pdf'):
+                return format_html(
+                    '<a href="{}" target="_blank" style="background: #3b82f6; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; display: inline-block;">📄 عرض PDF</a>',
+                    obj.payment_receipt.url
+                )
+            else:
+                return format_html(
+                    '<img src="{}" style="max-width: 300px; border: 2px solid #ddd; border-radius: 8px; padding: 5px;" />',
+                    obj.payment_receipt.url
+                )
+        return 'لم يتم رفع إيصال'
+    get_receipt_preview.short_description = 'معاينة الإيصال'
+    
+    def get_remaining_time(self, obj):
+        if obj.is_active:
+            return f'باقي {obj.days_remaining} يوم'
+        elif obj.status == 'expired':
+            return 'انتهى'
+        return '-'
+    get_remaining_time.short_description = 'الوقت المتبقي'
+    
+    def activate_requests(self, request, queryset):
+        """تفعيل الطلبات المحددة"""
+        count = 0
+        for req in queryset.filter(status='pending'):
+            if req.activate():
+                count += 1
+        self.message_user(request, f'✅ تم تفعيل {count} إعلان')
+    activate_requests.short_description = '✅ تفعيل الإعلانات'
+    
+    def reject_requests(self, request, queryset):
+        """رفض الطلبات المحددة"""
+        count = 0
+        for req in queryset.filter(status='pending'):
+            if req.reject('تم الرفض من قبل الإدارة'):
+                count += 1
+        self.message_user(request, f'❌ تم رفض {count} إعلان', level='WARNING')
+    reject_requests.short_description = '❌ رفض الإعلانات'
+
 # ============= Notifications Admin =============
 from .admin_notifications import *

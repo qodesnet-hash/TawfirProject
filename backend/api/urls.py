@@ -2,6 +2,16 @@
 from django.urls import path
 from .views_governorate import GovernorateListView, GovernorateDetailView, GovernorateCitiesView
 from .views_category import CategoryListView
+from .views_featured import (
+    PaymentAccountListView,
+    FeaturedPlanListView,
+    FeaturedRequestListView,
+    FeaturedRequestCreateView,
+    FeaturedRequestDetailView,
+    FeaturedRequestUploadReceiptView,
+    MyActiveFeaturedAdsView,
+    FeaturedRequestStatsView
+)
 from .views import (
     OnlineUsersSettingsView,
     OfferListView, 
@@ -78,4 +88,14 @@ urlpatterns = [
     path('merchant/analytics/', MerchantAnalyticsView.as_view(), name='merchant-analytics'),
     path('merchant/settings/update/', MerchantSettingsUpdateView.as_view(), name='merchant-settings-update'),
     path('online-users-settings/', OnlineUsersSettingsView.as_view(), name='online-users-settings'),
+    
+    # Featured Ads System (نظام الإعلانات المميزة)
+    path('payment-accounts/', PaymentAccountListView.as_view(), name='payment-accounts'),
+    path('featured-plans/', FeaturedPlanListView.as_view(), name='featured-plans'),
+    path('featured-requests/', FeaturedRequestListView.as_view(), name='featured-request-list'),
+    path('featured-requests/create/', FeaturedRequestCreateView.as_view(), name='featured-request-create'),
+    path('featured-requests/<int:pk>/', FeaturedRequestDetailView.as_view(), name='featured-request-detail'),
+    path('featured-requests/<int:pk>/upload-receipt/', FeaturedRequestUploadReceiptView.as_view(), name='featured-request-upload-receipt'),
+    path('featured-requests/my-active/', MyActiveFeaturedAdsView.as_view(), name='my-active-featured-ads'),
+    path('featured-requests/stats/', FeaturedRequestStatsView.as_view(), name='featured-request-stats'),
 ]

@@ -375,6 +375,182 @@ class OnlineUsersSettings(models.Model):
             raise ValidationError("يمكن إنشاء سجل إعدادات واحد فقط.")
         super().save(*args, **kwargs)
 
+# ============= Payment Accounts Model =============
+class PaymentAccount(models.Model):
+    """
+    حسابات الدفع (كريمي، عمقي، إلخ)
+    """
+    BANK_CHOICES = [
+        ('alkremi', 'الكريمي'),
+        ('alomgy', 'العمقي'),
+        ('cac', 'بنك التسليف'),
+        ('tadhamon', 'بنك التضامن'),
+        ('other', 'أخرى'),
+    ]
+    
+    bank_name = models.CharField(max_length=50, choices=BANK_CHOICES, verbose_name="البنك")
+    account_name = models.CharField(max_length=255, verbose_name="اسم الحساب")
+    account_number = models.CharField(max_length=50, verbose_name="رقم الحساب")
+    qr_code = models.ImageField(upload_to='payment_qr/', null=True, blank=True, verbose_name="QR Code")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    order = models.IntegerField(default=0, verbose_name="الترتيب")
+    notes = models.TextField(blank=True, null=True, verbose_name="ملاحظات")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "حساب دفع"
+        verbose_name_plural = "حسابات الدفع"
+        ordering = ['order', 'bank_name']
+    
+    def __str__(self):
+        return f"{self.get_bank_name_display()} - {self.account_number}"
+
+# ============= Featured Plans Model =============
+class FeaturedPlan(models.Model):
+    """
+    خطط الإعلانات المميزة
+    """
+    name = models.CharField(max_length=100, verbose_name="اسم الخطة")
+    duration_days = models.IntegerField(verbose_name="المدة بالأيام")
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="السعر (ريال يمني)")
+    estimated_views = models.CharField(max_length=50, blank=True, null=True, verbose_name="المشاهدات المتوقعة", help_text="مثال: 1000-1500")
+    features = models.TextField(blank=True, null=True, verbose_name="الميزات", help_text="ميزات الخطة (كل ميزة في سطر)")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    order = models.IntegerField(default=0, verbose_name="الترتيب")
+    discount_percentage = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)], verbose_name="نسبة الخصم %")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "خطة إعلانية"
+        verbose_name_plural = "الخطط الإعلانية"
+        ordering = ['order', 'duration_days']
+    
+    def __str__(self):
+        return f"{self.name} - {self.duration_days} أيام"
+    
+    @property
+    def discounted_price(self):
+        """السعر بعد الخصم"""
+        if self.discount_percentage > 0:
+            discount = (self.price * self.discount_percentage) / 100
+            return self.price - discount
+        return self.price
+    
+    @property
+    def features_list(self):
+        """قائمة الميزات"""
+        if self.features:
+            return [f.strip() for f in self.features.split('\n') if f.strip()]
+        return []
+
+# ============= Featured Request Model =============
+class FeaturedRequest(models.Model):
+    """
+    طلبات الإعلانات المميزة
+    """
+    STATUS_CHOICES = [
+        ('draft', 'مسودة'),
+        ('pending', 'قيد المراجعة'),
+        ('active', 'نشط'),
+        ('rejected', 'مرفوض'),
+        ('expired', 'منتهي'),
+    ]
+    
+    merchant = models.ForeignKey(Merchant, on_delete=models.CASCADE, related_name='featured_requests', verbose_name="التاجر")
+    offer = models.ForeignKey(Offer, on_delete=models.CASCADE, related_name='featured_requests', verbose_name="العرض")
+    plan = models.ForeignKey(FeaturedPlan, on_delete=models.PROTECT, verbose_name="الخطة")
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="الحالة")
+    
+    # معلومات الدفع
+    payment_receipt = models.FileField(upload_to='featured_receipts/', null=True, blank=True, verbose_name="إيصال الدفع")
+    payment_method = models.ForeignKey(PaymentAccount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="طريقة الدفع")
+    transaction_number = models.CharField(max_length=100, blank=True, null=True, verbose_name="رقم الحوالة")
+    
+    # التواريخ
+    start_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ البدء")
+    end_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الانتهاء")
+    
+    # الإحصائيات
+    views_count = models.IntegerField(default=0, verbose_name="عدد المشاهدات")
+    favorites_count = models.IntegerField(default=0, verbose_name="الإضافة للمفضلة")
+    clicks_count = models.IntegerField(default=0, verbose_name="عدد الضغطات")
+    
+    # ملاحظات الإدارة
+    admin_notes = models.TextField(blank=True, null=True, verbose_name="ملاحظات الإدارة")
+    rejection_reason = models.TextField(blank=True, null=True, verbose_name="سبب الرفض")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الطلب")
+    updated_at = models.DateTimeField(auto_now=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ المراجعة")
+    
+    class Meta:
+        verbose_name = "طلب إعلان مميز"
+        verbose_name_plural = "طلبات الإعلانات المميزة"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.merchant.business_name} - {self.offer.title} ({self.get_status_display()})"
+    
+    @property
+    def is_active(self):
+        """التحقق من أن الإعلان نشط وساري"""
+        if self.status == 'active' and self.end_date:
+            return timezone.now() <= self.end_date
+        return False
+    
+    @property
+    def days_remaining(self):
+        """الأيام المتبقية"""
+        if self.is_active and self.end_date:
+            remaining = self.end_date - timezone.now()
+            return max(0, remaining.days)
+        return 0
+    
+    @property
+    def total_price(self):
+        """السعر الإجمالي بعد الخصم"""
+        return self.plan.discounted_price
+    
+    def activate(self):
+        """تفعيل الإعلان"""
+        if self.status == 'pending':
+            from datetime import timedelta
+            self.status = 'active'
+            self.start_date = timezone.now()
+            self.end_date = self.start_date + timedelta(days=self.plan.duration_days)
+            self.reviewed_at = timezone.now()
+            
+            # تفعيل العرض كمميز
+            self.offer.is_featured = True
+            self.offer.save()
+            
+            self.save()
+            return True
+        return False
+    
+    def reject(self, reason=None):
+        """رفض الطلب"""
+        if self.status == 'pending':
+            self.status = 'rejected'
+            self.rejection_reason = reason
+            self.reviewed_at = timezone.now()
+            self.save()
+            return True
+        return False
+    
+    def check_expiration(self):
+        """التحقق من انتهاء الإعلان"""
+        if self.status == 'active' and self.end_date and timezone.now() > self.end_date:
+            self.status = 'expired'
+            self.offer.is_featured = False
+            self.offer.save()
+            self.save()
+            return True
+        return False
+
 # ============= Notifications Models =============
 from .models_notifications import FCMToken, Notification
 
