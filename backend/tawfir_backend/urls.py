@@ -6,6 +6,11 @@ from django.views.generic import RedirectView
 from django.views.static import serve
 from django.http import HttpResponse
 
+# ✅ تخصيص Django Admin
+admin.site.site_header = 'لوحة تحكم توفير آب'
+admin.site.site_title = 'توفير آب - لوحة التحكم'
+admin.site.index_title = 'مرحباً بك في لوحة التحكم'
+
 def serve_media_with_cors(request, path):
     """Custom media serve with CORS headers"""
     response = serve(request, path, document_root=settings.MEDIA_ROOT)
