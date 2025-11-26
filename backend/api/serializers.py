@@ -121,12 +121,17 @@ class OfferManagementSerializer(serializers.ModelSerializer):
     images = OfferImageSerializer(many=True, read_only=True)
     views_count = serializers.IntegerField(read_only=True)
     favorites_count = serializers.SerializerMethodField()
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        required=False,
+        allow_null=True
+    )
     
     class Meta:
         model = Offer
         fields = [
             'id', 'title', 'description', 'price_before', 'price_after',
-            'city', 'status', 'is_featured', 'end_at', 'created_at',
+            'city', 'category', 'status', 'is_featured', 'end_at', 'created_at',
             'views_count', 'images', 'favorites_count'
         ]
     
