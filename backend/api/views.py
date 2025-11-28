@@ -151,10 +151,13 @@ class ReviewCreateView(APIView):
     
     def post(self, request, merchant_id):
         # تسجيل معلومات التصحيح
-        print(f"ReviewCreateView - User: {request.user}")
-        print(f"ReviewCreateView - Is authenticated: {request.user.is_authenticated}")
-        print(f"ReviewCreateView - Request data: {request.data}")
-        print(f"ReviewCreateView - Auth header: {request.headers.get('Authorization', 'None')}")
+        print(f"="*50)
+        print(f"ReviewCreateView POST - Merchant ID: {merchant_id}")
+        print(f"User: {request.user} (ID: {request.user.id})")
+        print(f"User email: {getattr(request.user, 'email', 'N/A')}")
+        print(f"User phone: {getattr(request.user, 'phone_number', 'N/A')}")
+        print(f"Request data: {request.data}")
+        print(f"="*50)
         
         # التحقق من المصادقة بشكل صريح
         if not request.user or not request.user.is_authenticated:
@@ -166,6 +169,7 @@ class ReviewCreateView(APIView):
         # التحقق من وجود المتجر
         try:
             merchant = Merchant.objects.get(pk=merchant_id)
+            print(f"Found merchant: {merchant.business_name}")
         except Merchant.DoesNotExist:
             return Response(
                 {'error': 'المتجر غير موجود', 'merchant_id': merchant_id},
@@ -176,68 +180,82 @@ class ReviewCreateView(APIView):
         existing_review = Review.objects.filter(user=request.user, merchant=merchant).first()
         
         if existing_review:
-            # تحديث التقييم الموجود بدلاً من إرجاع خطأ
-            print(f"Found existing review ID={existing_review.id}, updating instead of creating")
-            serializer = ReviewCreateSerializer(existing_review, data=request.data, partial=True)
+            # تحديث التقييم الموجود
+            print(f"🔄 UPDATING existing review ID={existing_review.id}")
+            print(f"   Old: rating={existing_review.rating}, comment='{existing_review.comment}'")
+            print(f"   New: {request.data}")
             
-            if serializer.is_valid():
-                updated_review = serializer.save()
-                print(f"✅ Review updated successfully: ID={updated_review.id}")
-                response_serializer = ReviewSerializer(updated_review)
-                return Response(
-                    {
-                        'message': 'تم تحديث التقييم بنجاح',
-                        'action': 'updated',
-                        'review': response_serializer.data
-                    }, 
-                    status=200  # نستخدم 200 للتحديث
-                )
-            else:
-                print(f"Validation errors during update: {serializer.errors}")
-                return Response(
-                    {
-                        'error': 'البيانات المرسلة غير صحيحة',
-                        'details': serializer.errors
-                    },
-                    status=400
-                )
+            # تحديث مباشر بدون serializer لضمان الحفظ
+            old_rating = existing_review.rating
+            old_comment = existing_review.comment
+            
+            new_rating = request.data.get('rating', existing_review.rating)
+            new_comment = request.data.get('comment', existing_review.comment)
+            
+            existing_review.rating = new_rating
+            existing_review.comment = new_comment
+            existing_review.save()
+            
+            # التحقق من الحفظ
+            existing_review.refresh_from_db()
+            print(f"   ✅ After save: rating={existing_review.rating}, comment='{existing_review.comment}'")
+            
+            if existing_review.rating != new_rating or existing_review.comment != new_comment:
+                print(f"   ❌ WARNING: Values didn't save correctly!")
+            
+            response_serializer = ReviewSerializer(existing_review)
+            return Response(
+                {
+                    'message': 'تم تحديث التقييم بنجاح',
+                    'action': 'updated',
+                    'review': response_serializer.data,
+                    'debug': {
+                        'old_rating': old_rating,
+                        'new_rating': existing_review.rating,
+                        'old_comment': old_comment,
+                        'new_comment': existing_review.comment
+                    }
+                }, 
+                status=200
+            )
         else:
             # إنشاء تقييم جديد
-            serializer = ReviewCreateSerializer(data=request.data)
-            if serializer.is_valid():
-                # حفظ التقييم
-                try:
-                    review = serializer.save(
-                        user=request.user, 
-                        merchant=merchant,
-                        comment=serializer.validated_data.get('comment', '')
-                    )
-                    # إرجاع البيانات باستخدام ReviewSerializer
-                    response_serializer = ReviewSerializer(review)
-                    print(f"✅ Review created successfully for user {request.user.phone_number} on merchant {merchant_id}")
-                    return Response(
-                        {
-                            'message': 'تم إضافة التقييم بنجاح',
-                            'action': 'created',
-                            'review': response_serializer.data
-                        },
-                        status=201
-                    )
-                except Exception as e:
-                    print(f"Error saving review: {str(e)}")
-                    return Response(
-                        {'error': f'حدث خطأ في حفظ المراجعة: {str(e)}'},
-                        status=500
-                    )
-            else:
-                print(f"Validation errors: {serializer.errors}")
+            print(f"➕ CREATING new review for user {request.user.id} on merchant {merchant_id}")
+            
+            new_rating = request.data.get('rating')
+            new_comment = request.data.get('comment', '')
+            
+            if not new_rating or not (1 <= int(new_rating) <= 5):
+                return Response(
+                    {'error': 'التقييم يجب أن يكون بين 1 و 5'},
+                    status=400
+                )
+            
+            try:
+                review = Review.objects.create(
+                    user=request.user,
+                    merchant=merchant,
+                    rating=int(new_rating),
+                    comment=new_comment or ''
+                )
+                print(f"   ✅ Review created: ID={review.id}, rating={review.rating}")
+                
+                response_serializer = ReviewSerializer(review)
                 return Response(
                     {
-                        'error': 'البيانات المرسلة غير صحيحة',
-                        'details': serializer.errors,
-                        'hint': 'تأكد من أن التقييم بين 1 و 5'
+                        'message': 'تم إضافة التقييم بنجاح',
+                        'action': 'created',
+                        'review': response_serializer.data
                     },
-                    status=400
+                    status=201
+                )
+            except Exception as e:
+                print(f"   ❌ Error creating review: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return Response(
+                    {'error': f'حدث خطأ في حفظ المراجعة: {str(e)}'},
+                    status=500
                 )
 
 class ReviewUpdateView(APIView):
@@ -245,9 +263,11 @@ class ReviewUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     
     def put(self, request, merchant_id):
-        print(f"ReviewUpdateView PUT - User: {request.user}")
+        print(f"="*50)
         print(f"ReviewUpdateView PUT - Merchant ID: {merchant_id}")
-        print(f"ReviewUpdateView PUT - Data: {request.data}")
+        print(f"User: {request.user} (ID: {request.user.id})")
+        print(f"Request data: {request.data}")
+        print(f"="*50)
         
         # التحقق من وجود المتجر
         try:
@@ -268,22 +288,35 @@ class ReviewUpdateView(APIView):
                 status=404
             )
         
-        # تحديث المراجعة
-        serializer = ReviewCreateSerializer(review, data=request.data, partial=True)
-        if serializer.is_valid():
-            updated_review = serializer.save()
-            print(f"Review updated: ID={updated_review.id}, New Rating={updated_review.rating}, New Comment={updated_review.comment}")
-            response_serializer = ReviewSerializer(updated_review)
-            return Response(
-                {
-                    'message': 'تم تحديث التقييم بنجاح',
-                    'review': response_serializer.data
-                },
-                status=200
-            )
-        else:
-            print(f"Validation errors: {serializer.errors}")
-            return Response(serializer.errors, status=400)
+        # تحديث مباشر
+        old_rating = review.rating
+        old_comment = review.comment
+        
+        new_rating = request.data.get('rating', review.rating)
+        new_comment = request.data.get('comment', review.comment)
+        
+        review.rating = new_rating
+        review.comment = new_comment
+        review.save()
+        
+        review.refresh_from_db()
+        print(f"✅ Review updated: ID={review.id}, New Rating={review.rating}, New Comment={review.comment}")
+        
+        response_serializer = ReviewSerializer(review)
+        return Response(
+            {
+                'message': 'تم تحديث التقييم بنجاح',
+                'action': 'updated',
+                'review': response_serializer.data,
+                'debug': {
+                    'old_rating': old_rating,
+                    'new_rating': review.rating,
+                    'old_comment': old_comment,
+                    'new_comment': review.comment
+                }
+            },
+            status=200
+        )
     
     def delete(self, request, merchant_id):
         """حذف تقييم"""
