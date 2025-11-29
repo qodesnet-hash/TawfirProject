@@ -61,13 +61,14 @@ class FavoriteSerializer(serializers.ModelSerializer):
         fields = ['id', 'offer']
 
 class ReviewSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
     user_phone_number = serializers.CharField(source='user.phone_number', read_only=True)
     user_email = serializers.CharField(source='user.email', read_only=True)
 
     class Meta:
         model = Review
-        fields = ['id', 'rating', 'comment', 'created_at', 'user_phone_number', 'user_email']
-        read_only_fields = ['id', 'created_at', 'user_phone_number', 'user_email']
+        fields = ['id', 'rating', 'comment', 'created_at', 'user_id', 'user_phone_number', 'user_email']
+        read_only_fields = ['id', 'created_at', 'user_id', 'user_phone_number', 'user_email']
 
 class ReviewCreateSerializer(serializers.ModelSerializer):
     comment = serializers.CharField(required=False, allow_blank=True, allow_null=True, default='')
