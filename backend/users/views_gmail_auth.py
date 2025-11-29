@@ -83,7 +83,7 @@ class GoogleAuthView(APIView):
     
     def post(self, request):
         id_token_str = request.data.get('id_token')
-        user_type = request.data.get('user_type', 'customer')
+        user_type = 'customer'  # جميع المستخدمين الجدد يسجلون كـ customer
         dev_mode = request.data.get('dev_mode', False)  # 🚀 وضع التطوير
         
         if not id_token_str:
@@ -186,20 +186,7 @@ class GoogleAuthView(APIView):
                     logger.warning(f'⚠️ Could not save outstanding token: {e}')
                 
                 needs_completion = user.needs_profile_completion
-                
-                # إنشاء طلب تاجر إذا لزم الأمر
-                if created and user_type == 'merchant':
-                    try:
-                        from api.models import MerchantRequest
-                        MerchantRequest.objects.create(
-                            user=user, 
-                            business_name=full_name or email,
-                            status='pending'
-                        )
-                        logger.info(f"Merchant request created for: {email}")
-                    except Exception as e:
-                        logger.error(f"Could not create merchant request: {e}")
-                
+
                 return Response({
                     'success': True,
                     'access': access_token,
