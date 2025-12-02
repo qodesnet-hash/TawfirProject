@@ -23,7 +23,8 @@ from .views import (
     ReviewCreateView, ReviewUpdateView, MerchantReviewListView, LatestReviewsView,
     TopMerchantsView, MerchantDetailView, MerchantOffersView,
     NearbyOffersView,
-    CheckAuthView
+    CheckAuthView,
+    BusinessTypeListView
 )
 from .merchant_views import (
     CheckMerchantStatusView,
@@ -54,6 +55,9 @@ urlpatterns = [
     
     # Categories
     path('categories/', CategoryListView.as_view(), name='category-list'),
+    
+    # Business Types (أنواع الأنشطة)
+    path('business-types/', BusinessTypeListView.as_view(), name='business-type-list'),
     
     # Cities
     path('cities/', CityListView.as_view(), name='city-list'),
