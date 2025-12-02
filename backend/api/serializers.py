@@ -166,7 +166,7 @@ class MerchantDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Merchant
         fields = [
-            'id', 'business_name', 'logo', 'phone', 'address',
+            'id', 'business_name', 'business_type', 'logo', 'phone', 'address',
             'opening_hours', 'latitude', 'longitude',
             'average_rating', 'reviews_count', 'offers_count',
             'recent_reviews'

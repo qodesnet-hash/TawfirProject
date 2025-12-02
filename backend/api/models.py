@@ -110,6 +110,7 @@ class Merchant(models.Model):
     
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     business_name = models.CharField(max_length=255, verbose_name="الاسم التجاري")
+    business_type = models.CharField(max_length=100, blank=True, null=True, verbose_name="نوع النشاط")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='قيد المراجعة', verbose_name="حالة الحساب")
     
     # الموقع الجغرافي
@@ -634,6 +635,7 @@ def auto_create_merchant_on_approval(sender, instance, created, **kwargs):
             merchant = Merchant.objects.create(
                 user=instance.user,
                 business_name=instance.business_name,
+                business_type=instance.business_type,
                 phone=instance.phone,
                 address=instance.address,
                 governorate=instance.governorate,
