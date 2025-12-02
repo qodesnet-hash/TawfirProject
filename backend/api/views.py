@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count, Avg, F
 from django.db import models
-from .models import Offer, City, Favorite, Merchant, Review, OnlineUsersSettings
+from .models import Offer, City, Favorite, Merchant, Review, OnlineUsersSettings, BusinessType
 from .serializers import (
     OfferSerializer, CitySerializer, FavoriteSerializer,
     TopMerchantSerializer, MerchantDetailSerializer, OfferSerializer as MerchantOfferSerializer, 
@@ -498,3 +498,14 @@ class CheckAuthView(APIView):
             'user_id': request.user.id,
             'message': 'POST request authenticated successfully'
         })
+
+
+# ============= Business Types View =============
+class BusinessTypeListView(APIView):
+    '''جلب قائمة أنواع الأنشطة التجارية'''
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        business_types = BusinessType.objects.filter(is_active=True).order_by('order', 'name')
+        data = [{'id': bt.id, 'name': bt.name, 'icon': bt.icon} for bt in business_types]
+        return Response(data)

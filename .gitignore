@@ -59,3 +59,13 @@ logs/
 
 # Node (if any)
 node_modules/
+
+# Local Documentation Files (no need to commit)
+OPTIMIZATION_APPLIED.txt
+GIT_FIX_INSTRUCTIONS.txt
+*_APPLIED.txt
+*_GUIDE.txt
+*_FIX.txt
+*_COMPARISON.txt
+*_SUMMARY.txt
+*_INSTRUCTIONS.txt

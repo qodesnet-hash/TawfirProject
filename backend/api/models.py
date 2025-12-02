@@ -60,6 +60,23 @@ class City(models.Model):
     def __str__(self):
         return self.name
 
+# ============= Business Type Model =============
+class BusinessType(models.Model):
+    """نموذج أنواع الأنشطة التجارية"""
+    name = models.CharField(max_length=100, verbose_name="اسم النشاط")
+    icon = models.CharField(max_length=50, blank=True, null=True, verbose_name="أيقونة", help_text="اسم الأيقونة من Ionicons")
+    order = models.IntegerField(default=0, verbose_name="الترتيب")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "نوع نشاط"
+        verbose_name_plural = "أنواع الأنشطة"
+        ordering = ['order', 'name']
+    
+    def __str__(self):
+        return self.name
+
 # ============= Category Model =============
 class Category(models.Model):
     """نموذج الفئات للعروض"""

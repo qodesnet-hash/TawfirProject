@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
-from .models import Governorate, City, Category, Merchant, Offer, OfferImage, Favorite, Review, MerchantRequest
+from .models import Governorate, City, Category, Merchant, Offer, OfferImage, Favorite, Review, MerchantRequest, BusinessType
 
 # ============= Governorate Admin =============
 class CityInline(admin.TabularInline):
@@ -187,6 +187,16 @@ class CityAdmin(admin.ModelAdmin):
         count = Offer.objects.filter(city=obj, status='مقبول').count()
         return count
     get_offers_count.short_description = 'عدد العروض'
+
+# ============= Business Type Admin =============
+@admin.register(BusinessType)
+class BusinessTypeAdmin(admin.ModelAdmin):
+    """إدارة أنواع الأنشطة التجارية"""
+    list_display = ['name', 'icon', 'order', 'is_active']
+    list_editable = ['order', 'is_active']
+    list_filter = ['is_active']
+    search_fields = ['name']
+    ordering = ['order', 'name']
 
 @admin.register(Merchant)
 class MerchantAdmin(admin.ModelAdmin):
