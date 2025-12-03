@@ -181,12 +181,20 @@ class Offer(models.Model):
         ('مسودة', 'مسودة'),
         ('منتهي', 'منتهي'),
     ]
+    
+    CURRENCY_CHOICES = [
+        ('YER', 'ر.ي'),
+        ('SAR', 'ر.س'),
+        ('USD', '$'),
+    ]
+    
     merchant = models.ForeignKey(Merchant, on_delete=models.CASCADE, verbose_name="التاجر")
     title = models.CharField(max_length=255, verbose_name="عنوان العرض")
     description = models.TextField(verbose_name="الوصف")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='offers', verbose_name="الفئة")
     price_before = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="السعر قبل")
     price_after = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="السعر بعد")
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='YER', verbose_name="العملة")
     end_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الانتهاء")
     city = models.ForeignKey(City, on_delete=models.PROTECT, verbose_name="المدينة")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='مسودة')
@@ -194,6 +202,16 @@ class Offer(models.Model):
     featured_until = models.DateTimeField(null=True, blank=True, verbose_name="مميز حتى")
     created_at = models.DateTimeField(auto_now_add=True)
     views_count = models.IntegerField(default=0, verbose_name="عدد المشاهدات")
+    
+    @property
+    def currency_symbol(self):
+        """إرجاع رمز العملة"""
+        symbols = {
+            'YER': 'ر.ي',
+            'SAR': 'ر.س',
+            'USD': '$',
+        }
+        return symbols.get(self.currency, 'ر.ي')
 
     @property
     def saving_percentage(self):
@@ -386,19 +404,14 @@ class OnlineUsersSettings(models.Model):
         return f"إعدادات المتواجدين - {'مفعل' if self.enabled else 'معطل'}"
     
     def save(self, *args, **kwargs):
-        # يضمن وجود صف واحد فقط من الإعدادات
         if not self.pk and OnlineUsersSettings.objects.exists():
-            # لا تقم بحذف، بل قم بتحديث الموجود أو منع الإنشاء
-            # الطريقة الأبسط هي منع إنشاء سجل جديد
             from django.core.exceptions import ValidationError
             raise ValidationError("يمكن إنشاء سجل إعدادات واحد فقط.")
         super().save(*args, **kwargs)
 
 # ============= Payment Accounts Model =============
 class PaymentAccount(models.Model):
-    """
-    حسابات الدفع (كريمي، عمقي، إلخ)
-    """
+    """حسابات الدفع"""
     BANK_CHOICES = [
         ('alkremi', 'الكريمي'),
         ('alomgy', 'العمقي'),
@@ -427,14 +440,12 @@ class PaymentAccount(models.Model):
 
 # ============= Featured Plans Model =============
 class FeaturedPlan(models.Model):
-    """
-    خطط الإعلانات المميزة
-    """
+    """خطط الإعلانات المميزة"""
     name = models.CharField(max_length=100, verbose_name="اسم الخطة")
     duration_days = models.IntegerField(verbose_name="المدة بالأيام")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="السعر (ريال يمني)")
-    estimated_views = models.CharField(max_length=50, blank=True, null=True, verbose_name="المشاهدات المتوقعة", help_text="مثال: 1000-1500")
-    features = models.TextField(blank=True, null=True, verbose_name="الميزات", help_text="ميزات الخطة (كل ميزة في سطر)")
+    estimated_views = models.CharField(max_length=50, blank=True, null=True, verbose_name="المشاهدات المتوقعة")
+    features = models.TextField(blank=True, null=True, verbose_name="الميزات")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     order = models.IntegerField(default=0, verbose_name="الترتيب")
     discount_percentage = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)], verbose_name="نسبة الخصم %")
@@ -451,7 +462,6 @@ class FeaturedPlan(models.Model):
     
     @property
     def discounted_price(self):
-        """السعر بعد الخصم"""
         if self.discount_percentage > 0:
             discount = (self.price * self.discount_percentage) / 100
             return self.price - discount
@@ -459,16 +469,13 @@ class FeaturedPlan(models.Model):
     
     @property
     def features_list(self):
-        """قائمة الميزات"""
         if self.features:
             return [f.strip() for f in self.features.split('\n') if f.strip()]
         return []
 
 # ============= Featured Request Model =============
 class FeaturedRequest(models.Model):
-    """
-    طلبات الإعلانات المميزة
-    """
+    """طلبات الإعلانات المميزة"""
     STATUS_CHOICES = [
         ('draft', 'مسودة'),
         ('pending', 'قيد المراجعة'),
@@ -483,21 +490,17 @@ class FeaturedRequest(models.Model):
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="الحالة")
     
-    # معلومات الدفع
     payment_receipt = models.FileField(upload_to='featured_receipts/', null=True, blank=True, verbose_name="إيصال الدفع")
     payment_method = models.ForeignKey(PaymentAccount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="طريقة الدفع")
     transaction_number = models.CharField(max_length=100, blank=True, null=True, verbose_name="رقم الحوالة")
     
-    # التواريخ
     start_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ البدء")
     end_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الانتهاء")
     
-    # الإحصائيات
     views_count = models.IntegerField(default=0, verbose_name="عدد المشاهدات")
     favorites_count = models.IntegerField(default=0, verbose_name="الإضافة للمفضلة")
     clicks_count = models.IntegerField(default=0, verbose_name="عدد الضغطات")
     
-    # ملاحظات الإدارة
     admin_notes = models.TextField(blank=True, null=True, verbose_name="ملاحظات الإدارة")
     rejection_reason = models.TextField(blank=True, null=True, verbose_name="سبب الرفض")
     
@@ -515,14 +518,12 @@ class FeaturedRequest(models.Model):
     
     @property
     def is_active(self):
-        """التحقق من أن الإعلان نشط وساري"""
         if self.status == 'active' and self.end_date:
             return timezone.now() <= self.end_date
         return False
     
     @property
     def days_remaining(self):
-        """الأيام المتبقية"""
         if self.is_active and self.end_date:
             remaining = self.end_date - timezone.now()
             return max(0, remaining.days)
@@ -530,28 +531,22 @@ class FeaturedRequest(models.Model):
     
     @property
     def total_price(self):
-        """السعر الإجمالي بعد الخصم"""
         return self.plan.discounted_price
     
     def activate(self):
-        """تفعيل الإعلان"""
         if self.status == 'pending':
             from datetime import timedelta
             self.status = 'active'
             self.start_date = timezone.now()
             self.end_date = self.start_date + timedelta(days=self.plan.duration_days)
             self.reviewed_at = timezone.now()
-            
-            # تفعيل العرض كمميز
             self.offer.is_featured = True
             self.offer.save()
-            
             self.save()
             return True
         return False
     
     def reject(self, reason=None):
-        """رفض الطلب"""
         if self.status == 'pending':
             self.status = 'rejected'
             self.rejection_reason = reason
@@ -561,7 +556,6 @@ class FeaturedRequest(models.Model):
         return False
     
     def check_expiration(self):
-        """التحقق من انتهاء الإعلان"""
         if self.status == 'active' and self.end_date and timezone.now() > self.end_date:
             self.status = 'expired'
             self.offer.is_featured = False
@@ -572,43 +566,26 @@ class FeaturedRequest(models.Model):
         return False
     
     def save(self, *args, **kwargs):
-        """
-        حفظ الطلب مع Auto-Activation
-        عندما يتغير status إلى 'active':
-        - يفعّل offer.is_featured = True
-        - يحدد offer.featured_until = end_date
-        - يضبط start_date و end_date
-        """
-        # التحقق من التغيير من pending إلى active
         if self.pk:
             old_instance = FeaturedRequest.objects.filter(pk=self.pk).first()
             if old_instance:
-                # Auto-Activation: pending → active
                 if old_instance.status != 'active' and self.status == 'active':
                     from datetime import timedelta
-                    # ضبط التواريخ
                     if not self.start_date:
                         self.start_date = timezone.now()
                     if not self.end_date:
                         self.end_date = self.start_date + timedelta(days=self.plan.duration_days)
                     if not self.reviewed_at:
                         self.reviewed_at = timezone.now()
-                    
-                    # تفعيل العرض كمميز
                     self.offer.is_featured = True
                     self.offer.featured_until = self.end_date
                     self.offer.save()
-                    
                     print(f"✅ Auto-Activated Featured Ad: {self.offer.title} until {self.end_date}")
-                
-                # Auto-Deactivation: active → rejected/expired
                 elif old_instance.status == 'active' and self.status in ['rejected', 'expired']:
                     self.offer.is_featured = False
                     self.offer.featured_until = None
                     self.offer.save()
-                    
                     print(f"❌ Auto-Deactivated Featured Ad: {self.offer.title}")
-        
         super().save(*args, **kwargs)
 
 # ============= Notifications Models =============
@@ -620,18 +597,12 @@ from django.dispatch import receiver
 
 @receiver(post_save, sender=MerchantRequest)
 def auto_create_merchant_on_approval(sender, instance, created, **kwargs):
-    """
-    إنشاء حساب تاجر تلقائياً عند الموافقة على الطلب
-    """
-    # تجاهل الإنشاء الجديد - فقط عند التحديث
+    """إنشاء حساب تاجر تلقائياً عند الموافقة على الطلب"""
     if created:
         return
     
-    # التحقق من أن الحالة أصبحت 'approved'
     if instance.status == 'approved':
-        # التحقق من عدم وجود Merchant لهذا المستخدم
         if not Merchant.objects.filter(user=instance.user).exists():
-            # إنشاء Merchant جديد
             merchant = Merchant.objects.create(
                 user=instance.user,
                 business_name=instance.business_name,
@@ -643,16 +614,13 @@ def auto_create_merchant_on_approval(sender, instance, created, **kwargs):
                 status='مقبول'
             )
             
-            # ربط الطلب بالتاجر
             instance.merchant = merchant
             instance.reviewed_at = timezone.now()
-            # استخدام update_fields لتجنب infinite loop
             MerchantRequest.objects.filter(pk=instance.pk).update(
                 merchant=merchant,
                 reviewed_at=timezone.now()
             )
             
-            # تحديث نوع المستخدم
             instance.user.user_type = 'merchant'
             instance.user.save()
             

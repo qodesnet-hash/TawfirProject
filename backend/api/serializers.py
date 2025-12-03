@@ -35,11 +35,14 @@ class OfferSerializer(serializers.ModelSerializer):
     views_count = serializers.IntegerField(read_only=True)  # إضافة views_count
     created_at = serializers.DateTimeField(read_only=True)  # إضافة created_at
     is_favorited = serializers.SerializerMethodField()  # إضافة is_favorited
+    currency = serializers.CharField(read_only=True)  # إضافة العملة
+    currency_symbol = serializers.CharField(read_only=True)  # رمز العملة
 
     class Meta:
         model = Offer
         fields = [
             'id', 'title', 'description', 'price_before', 'price_after',
+            'currency', 'currency_symbol',
             'saving_percentage', 'city', 'category', 'merchant', 'images', 'is_featured', 
             'end_at', 'views_count', 'created_at', 'is_favorited'
         ]
@@ -127,11 +130,14 @@ class OfferManagementSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    currency = serializers.CharField(required=False, default='YER')  # إضافة العملة
+    currency_symbol = serializers.CharField(read_only=True)  # رمز العملة
     
     class Meta:
         model = Offer
         fields = [
             'id', 'title', 'description', 'price_before', 'price_after',
+            'currency', 'currency_symbol',
             'city', 'category', 'status', 'is_featured', 'end_at', 'created_at',
             'views_count', 'images', 'favorites_count'
         ]
