@@ -62,6 +62,16 @@ class CustomUser(AbstractUser):
         verbose_name='المدينة'
     )
     
+    # المدينة المختارة حالياً (للإشعارات)
+    selected_city = models.ForeignKey(
+        'api.City',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users_selected',
+        verbose_name='المدينة المختارة'
+    )
+    
     address = models.TextField(
         blank=True,
         null=True,

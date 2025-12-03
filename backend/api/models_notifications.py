@@ -15,6 +15,15 @@ class FCMToken(models.Model):
         choices=[('android', 'Android'), ('ios', 'iOS')],
         default='android'
     )
+    # إضافة المدينة لاستهداف الإشعارات المحلية
+    city = models.ForeignKey(
+        'api.City',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fcm_tokens',
+        verbose_name="المدينة"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)

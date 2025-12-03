@@ -578,3 +578,6 @@ class FeaturedRequestAdmin(admin.ModelAdmin):
 
 # ============= Notifications Admin =============
 from .admin_notifications import *
+
+# ============= Push Notifications Admin =============
+from .admin_push_notifications import *

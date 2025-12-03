@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/v1/', include('api.urls')),
     path('api/v1/auth/', include('users.urls')),
     path('api/v1/notifications/', include('api.urls_notifications')),
+    path('api/v1/push/', include('api.urls_push_notifications')),
 ]
 
 # Media files with CORS
