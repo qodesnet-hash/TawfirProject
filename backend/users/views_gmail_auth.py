@@ -274,7 +274,9 @@ class CompleteProfileView(APIView):
                 logger.info(f"🏙️ Looking for city ID: {city_id}")
                 city = City.objects.get(id=city_id)
                 user.city = city
+                user.selected_city = city  # ✅ حفظ المدينة المختارة أيضاً للإشعارات
                 logger.info(f"✅ City set: {city.name}")
+                logger.info(f"✅ Selected city set: {city.name}")
             except ValueError:
                 logger.error(f'❌ Invalid city_id format: {data["city_id"]}')
                 return Response({
