@@ -125,6 +125,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / os.getenv('MEDIA_ROOT', 'media')
 
+# Base URL for API (used for image URLs in notifications)
+BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:8000')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.CustomUser'
 

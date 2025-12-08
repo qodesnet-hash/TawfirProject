@@ -163,6 +163,16 @@ class SendOfferNotificationView(APIView):
         title = serializer.validated_data.get('custom_title') or f"🔥 عرض جديد: {offer.title[:30]}"
         body = serializer.validated_data.get('custom_body') or f"خصم {offer.saving_percentage}% - {offer.title}"
         
+        # جلب صورة العرض (Big Picture)
+        image_url = None
+        if offer.images.exists():
+            first_image = offer.images.first()
+            if first_image and first_image.image:
+                # بناء الرابط الكامل للصورة
+                from django.conf import settings
+                base_url = getattr(settings, 'BASE_URL', 'https://api.tawfir.app')
+                image_url = f"{base_url}{first_image.image.url}"
+        
         # جلب التوكنات المستهدفة
         if scope == 'city':
             # إشعار للمدينة فقط
@@ -196,7 +206,8 @@ class SendOfferNotificationView(APIView):
                     token=token,
                     title=title,
                     body=body,
-                    data={'offer_id': str(offer.id), 'type': 'new_offer'}
+                    data={'offer_id': str(offer.id), 'type': 'new_offer'},
+                    image_url=image_url  # إضافة صورة العرض
                 )
                 if result:
                     success_count += 1

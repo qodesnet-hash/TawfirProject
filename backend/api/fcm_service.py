@@ -37,8 +37,16 @@ class FCMService:
                 print(f"❌ Error initializing Firebase: {str(e)}")
     
     @classmethod
-    def send_to_token(cls, token, title, body, data=None):
-        """إرسال إشعار لتوكن واحد"""
+    def send_to_token(cls, token, title, body, data=None, image_url=None):
+        """إرسال إشعار لتوكن واحد
+        
+        Args:
+            token: FCM token
+            title: عنوان الإشعار
+            body: نص الإشعار
+            data: بيانات إضافية
+            image_url: رابط صورة الإشعار (Big Picture)
+        """
         cls.initialize_firebase()
         
         if not cls._initialized:
@@ -46,20 +54,47 @@ class FCMService:
             return False
         
         try:
+            # إعداد الإشعار مع الصورة إن وجدت
+            notification = messaging.Notification(
+                title=title,
+                body=body,
+                image=image_url if image_url else None,
+            )
+            
+            # إعداد Android مع الصورة
+            android_notification = messaging.AndroidNotification(
+                color='#047857',
+                sound='default',
+                priority='high',
+                image=image_url if image_url else None,
+            )
+            
+            android_config = messaging.AndroidConfig(
+                priority='high',
+                notification=android_notification,
+            )
+            
+            # إعداد iOS (APNS) - للمستقبل
+            apns_config = None
+            if image_url:
+                apns_config = messaging.APNSConfig(
+                    payload=messaging.APNSPayload(
+                        aps=messaging.Aps(
+                            mutable_content=True,
+                            sound='default',
+                        ),
+                    ),
+                    fcm_options=messaging.APNSFCMOptions(
+                        image=image_url,
+                    ),
+                )
+            
             message = messaging.Message(
-                notification=messaging.Notification(
-                    title=title,
-                    body=body,
-                ),
+                notification=notification,
                 data=data or {},
                 token=token,
-                android=messaging.AndroidConfig(
-                    priority='high',
-                    notification=messaging.AndroidNotification(
-                        color='#047857',
-                        sound='default',
-                    )
-                ),
+                android=android_config,
+                apns=apns_config,
             )
             
             response = messaging.send(message)
@@ -182,6 +217,14 @@ class FCMService:
 
 
 # دالة مختصرة للاستخدام في views
-def send_push_notification(token, title, body, data=None):
-    """دالة مختصرة لإرسال إشعار لتوكن واحد"""
-    return FCMService.send_to_token(token, title, body, data)
+def send_push_notification(token, title, body, data=None, image_url=None):
+    """دالة مختصرة لإرسال إشعار لتوكن واحد
+    
+    Args:
+        token: FCM token
+        title: عنوان الإشعار
+        body: نص الإشعار
+        data: بيانات إضافية
+        image_url: رابط صورة العرض (Big Picture Notification)
+    """
+    return FCMService.send_to_token(token, title, body, data, image_url)

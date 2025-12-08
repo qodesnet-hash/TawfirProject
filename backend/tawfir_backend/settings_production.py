@@ -215,6 +215,9 @@ USE_TZ = True
 # STATIC & MEDIA FILES
 # ═══════════════════════════════════════════════════════════════════
 
+# Base URL for API (used for image URLs in notifications)
+BASE_URL = os.getenv('BASE_URL', 'https://api.tawfir.app')
+
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
