@@ -172,6 +172,9 @@ class SendOfferNotificationView(APIView):
                 from django.conf import settings
                 base_url = getattr(settings, 'BASE_URL', 'https://api.tawfir.app')
                 image_url = f"{base_url}{first_image.image.url}"
+                print(f"🖼️ Notification image URL: {image_url}")
+        else:
+            print("⚠️ No images found for this offer")
         
         # جلب التوكنات المستهدفة
         if scope == 'city':

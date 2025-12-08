@@ -53,6 +53,9 @@ class FCMService:
             print("❌ Firebase not initialized. Cannot send notification.")
             return False
         
+        # Debug log
+        print(f"📤 Sending notification with image_url: {image_url}")
+        
         try:
             # إعداد الإشعار مع الصورة إن وجدت
             notification = messaging.Notification(
