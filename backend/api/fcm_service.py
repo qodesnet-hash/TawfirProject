@@ -53,22 +53,30 @@ class FCMService:
             print("❌ Firebase not initialized. Cannot send notification.")
             return False
         
-        # Debug log
-        print(f"📤 Sending notification with image_url: {image_url}")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"SENDING NOTIFICATION - image_url: {image_url}")
         
         try:
-            # إعداد الإشعار مع الصورة إن وجدت
-            notification = messaging.Notification(
+            # إضافة الصورة للـ data
+            notification_data = {}
+            if data:
+                for key, value in data.items():
+                    notification_data[key] = str(value)
+            if image_url:
+                notification_data['image'] = image_url
+                notification_data['imageUrl'] = image_url
+                notification_data['bigPicture'] = image_url
+            
+            # إعداد Android مع الصورة الكبيرة
+            android_notification = messaging.AndroidNotification(
                 title=title,
                 body=body,
-                image=image_url if image_url else None,
-            )
-            
-            # إعداد Android مع الصورة
-            android_notification = messaging.AndroidNotification(
-                color='#047857',
+                color='#10B981',
                 sound='default',
-                priority='high',
+                default_sound=True,
+                notification_priority='PRIORITY_HIGH',
+                visibility='PUBLIC',
                 image=image_url if image_url else None,
             )
             
@@ -77,7 +85,7 @@ class FCMService:
                 notification=android_notification,
             )
             
-            # إعداد iOS (APNS) - للمستقبل
+            # إعداد iOS
             apns_config = None
             if image_url:
                 apns_config = messaging.APNSConfig(
@@ -92,11 +100,12 @@ class FCMService:
                     ),
                 )
             
-            # إضافة الصورة للـ data أيضاً
-            notification_data = data.copy() if data else {}
-            if image_url:
-                notification_data['image'] = image_url
-                notification_data['imageUrl'] = image_url
+            # الإشعار الرئيسي
+            notification = messaging.Notification(
+                title=title,
+                body=body,
+                image=image_url if image_url else None,
+            )
             
             message = messaging.Message(
                 notification=notification,
@@ -107,11 +116,13 @@ class FCMService:
             )
             
             response = messaging.send(message)
-            print(f'✅ Successfully sent message: {response}')
+            logger.warning(f"SUCCESS - Message sent: {response}")
             return True
             
         except Exception as e:
-            print(f"❌ خطأ في إرسال الإشعار: {str(e)}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"ERROR sending notification: {str(e)}")
             return False
     
     @classmethod
