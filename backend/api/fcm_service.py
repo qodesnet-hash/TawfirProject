@@ -92,9 +92,15 @@ class FCMService:
                     ),
                 )
             
+            # إضافة الصورة للـ data أيضاً
+            notification_data = data.copy() if data else {}
+            if image_url:
+                notification_data['image'] = image_url
+                notification_data['imageUrl'] = image_url
+            
             message = messaging.Message(
                 notification=notification,
-                data=data or {},
+                data=notification_data,
                 token=token,
                 android=android_config,
                 apns=apns_config,
