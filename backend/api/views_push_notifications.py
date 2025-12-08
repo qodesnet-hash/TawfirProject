@@ -1,9 +1,12 @@
 # api/views_push_notifications.py
+import logging
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+
+logger = logging.getLogger(__name__)
 
 from .models_push_notifications import (
     NotificationPlan,
@@ -172,9 +175,9 @@ class SendOfferNotificationView(APIView):
                 from django.conf import settings
                 base_url = getattr(settings, 'BASE_URL', 'https://api.tawfir.app')
                 image_url = f"{base_url}{first_image.image.url}"
-                print(f"🖼️ Notification image URL: {image_url}")
+                logger.warning(f"NOTIFICATION IMAGE URL: {image_url}")
         else:
-            print("⚠️ No images found for this offer")
+            logger.warning("NO IMAGES FOUND FOR THIS OFFER")
         
         # جلب التوكنات المستهدفة
         if scope == 'city':
