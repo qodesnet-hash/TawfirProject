@@ -75,8 +75,7 @@ class FCMService:
                 color='#10B981',
                 sound='default',
                 default_sound=True,
-                notification_priority='PRIORITY_HIGH',
-                visibility='PUBLIC',
+                visibility='public',
                 image=image_url if image_url else None,
             )
             
