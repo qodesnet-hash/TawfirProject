@@ -595,14 +595,6 @@ class FeaturedRequest(models.Model):
 # ============= Notifications Models =============
 from .models_notifications import FCMToken, Notification
 
-# ============= Merchant Notification System =============
-from .models_notification_system import (
-    NotificationPlan,
-    MerchantNotificationCredit,
-    NotificationPurchaseRequest,
-    MerchantNotificationLog
-)
-
 # ============= Signals =============
 from django.db.models.signals import post_save
 from django.dispatch import receiver
