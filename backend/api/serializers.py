@@ -17,7 +17,7 @@ class OfferImageSerializer(serializers.ModelSerializer):
 class MerchantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Merchant
-        fields = ['id', 'business_name', 'latitude', 'longitude']
+        fields = ['id', 'business_name', 'latitude', 'longitude', 'delivery_phone']
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -44,7 +44,7 @@ class OfferSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'price_before', 'price_after',
             'currency', 'currency_symbol',
             'saving_percentage', 'city', 'category', 'merchant', 'images', 'is_featured', 
-            'end_at', 'views_count', 'created_at', 'is_favorited'
+            'end_at', 'views_count', 'created_at', 'is_favorited', 'delivery_enabled'
         ]
     
     def get_is_favorited(self, obj):
@@ -139,7 +139,7 @@ class OfferManagementSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'price_before', 'price_after',
             'currency', 'currency_symbol',
             'city', 'category', 'status', 'is_featured', 'end_at', 'created_at',
-            'views_count', 'images', 'favorites_count'
+            'views_count', 'images', 'favorites_count', 'delivery_enabled'
         ]
     
     def get_favorites_count(self, obj):

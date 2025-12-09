@@ -149,7 +149,8 @@ class MerchantDashboardView(APIView):
                 'governorate': merchant.governorate_id,
                 'city': merchant.city_id,
                 'average_rating': merchant.average_rating,
-                'logo': merchant.logo.url if merchant.logo else None
+                'logo': merchant.logo.url if merchant.logo else None,
+                'delivery_phone': merchant.delivery_phone
             },
             'statistics': {
                 'total_offers': total_offers,
@@ -186,6 +187,10 @@ class MerchantSettingsUpdateView(APIView):
         merchant.address = request.data.get('address', merchant.address)
         merchant.opening_hours = request.data.get('opening_hours', merchant.opening_hours)
         
+        # خدمة التوصيل
+        if 'delivery_phone' in request.data:
+            merchant.delivery_phone = request.data.get('delivery_phone') or None
+        
         if 'latitude' in request.data:
             merchant.latitude = request.data.get('latitude')
         if 'longitude' in request.data:
@@ -204,7 +209,8 @@ class MerchantSettingsUpdateView(APIView):
                 'opening_hours': merchant.opening_hours,
                 'latitude': merchant.latitude,
                 'longitude': merchant.longitude,
-                'logo': merchant.logo.url if merchant.logo else None
+                'logo': merchant.logo.url if merchant.logo else None,
+                'delivery_phone': merchant.delivery_phone
             }
         }, status=status.HTTP_200_OK)
 

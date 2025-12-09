@@ -139,6 +139,9 @@ class Merchant(models.Model):
     opening_hours = models.CharField(max_length=100, null=True, blank=True, verbose_name="أوقات العمل")
     logo = models.ImageField(upload_to='merchants/', null=True, blank=True, verbose_name="الشعار")
     
+    # خدمة التوصيل
+    delivery_phone = models.CharField(max_length=20, null=True, blank=True, verbose_name="رقم التوصيل (واتساب)")
+    
     @property
     def average_rating(self):
         from django.db.models import Avg
@@ -202,6 +205,7 @@ class Offer(models.Model):
     featured_until = models.DateTimeField(null=True, blank=True, verbose_name="مميز حتى")
     created_at = models.DateTimeField(auto_now_add=True)
     views_count = models.IntegerField(default=0, verbose_name="عدد المشاهدات")
+    delivery_enabled = models.BooleanField(default=False, verbose_name="تفعيل التوصيل")
     
     @property
     def currency_symbol(self):
