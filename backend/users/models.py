@@ -94,6 +94,31 @@ class CustomUser(AbstractUser):
         verbose_name='Google ID'
     )
     
+    firebase_uid = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True,
+        verbose_name='Firebase UID'
+    )
+    
+    # إحداثيات الموقع الجغرافي للمستخدم
+    latitude = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        blank=True,
+        null=True,
+        verbose_name='خط العرض'
+    )
+    
+    longitude = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        blank=True,
+        null=True,
+        verbose_name='خط الطول'
+    )
+    
     # حالة الحساب
     is_verified = models.BooleanField(
         default=False,
@@ -180,13 +205,12 @@ class CustomUser(AbstractUser):
     def needs_profile_completion(self):
         """Check if profile needs completion."""
         # التحقق من الحقول المطلوبة
+        # الاسم مطلوب دائماً
         if not self.full_name:
             return True
         
-        if not self.phone_number:
-            return True
-        
-        if not self.city:
+        # الموقع مطلوب (إحداثيات أو مدينة)
+        if not self.latitude and not self.longitude and not self.city:
             return True
             
         return False

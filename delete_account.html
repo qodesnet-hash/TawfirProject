@@ -664,13 +664,9 @@
             // window.location.href = `mailto:support@tawfir.app?subject=${subject}&body=${body}`;
             
             // Option 2: Simulate success (replace with actual API call)
-            setTimeout(() => {
-                document.getElementById('deleteForm').style.display = 'none';
-                document.getElementById('successMessage').classList.add('show');
-                
-                // Scroll to success message
-                document.getElementById('successMessage').scrollIntoView({ behavior: 'smooth' });
-            }, 1500);
+            // Send email
+            window.location.href = `mailto:qodesnet@gmail.com?subject=${subject}&body=${body}`;
+
         }
     </script>
 </body>
