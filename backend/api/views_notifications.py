@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from django.db import IntegrityError
 from .models_notifications import FCMToken, Notification
 from .fcm_service import FCMService
 
@@ -20,21 +21,57 @@ def save_fcm_token(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    # حفظ أو تحديث Token
-    fcm_token, created = FCMToken.objects.update_or_create(
-        user=request.user,
-        defaults={
-            'token': token,
-            'device_type': device_type,
-            'is_active': True
-        }
-    )
+    try:
+        # ✅ أولاً: حذف الـ token من أي مستخدم آخر (إن وجد)
+        # لأن نفس الجهاز قد يكون استخدمه شخص آخر سابقاً
+        FCMToken.objects.filter(token=token).exclude(user=request.user).delete()
+        
+        # ✅ ثانياً: حفظ أو تحديث Token للمستخدم الحالي
+        fcm_token, created = FCMToken.objects.update_or_create(
+            user=request.user,
+            defaults={
+                'token': token,
+                'device_type': device_type,
+                'is_active': True
+            }
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'تم حفظ Token بنجاح',
+            'created': created
+        })
+        
+    except IntegrityError as e:
+        # ✅ في حالة حدوث خطأ constraint، نحاول حذف الـ token القديم ونعيد المحاولة
+        print(f"⚠️ FCM Token IntegrityError: {e}")
+        
+        try:
+            FCMToken.objects.filter(token=token).delete()
+            fcm_token = FCMToken.objects.create(
+                user=request.user,
+                token=token,
+                device_type=device_type,
+                is_active=True
+            )
+            return Response({
+                'success': True,
+                'message': 'تم حفظ Token بنجاح (بعد إعادة المحاولة)',
+                'created': True
+            })
+        except Exception as retry_error:
+            print(f"❌ FCM Token Retry Error: {retry_error}")
+            return Response(
+                {'error': 'فشل حفظ Token'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
-    return Response({
-        'success': True,
-        'message': 'تم حفظ Token بنجاح',
-        'created': created
-    })
+    except Exception as e:
+        print(f"❌ FCM Token Error: {e}")
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['DELETE'])
