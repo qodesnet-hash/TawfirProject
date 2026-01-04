@@ -1,7 +1,58 @@
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
-from .models import Governorate, City, Category, Merchant, Offer, OfferImage, Favorite, Review, MerchantRequest, BusinessType
+from .models import Governorate, City, Category, Merchant, Offer, OfferImage, Favorite, Review, MerchantRequest, BusinessType, ExchangeRate
+
+
+# ============= Exchange Rate Admin =============
+@admin.register(ExchangeRate)
+class ExchangeRateAdmin(admin.ModelAdmin):
+    """إدارة أسعار الصرف"""
+    list_display = ['get_currency_icon', 'currency_code', 'get_region_badge', 'get_rate_display', 'is_active', 'updated_at']
+    list_editable = ['is_active']
+    list_filter = ['region', 'currency_code', 'is_active']
+    search_fields = ['currency_code']
+    ordering = ['region', 'currency_code']
+    
+    fieldsets = (
+        ('معلومات سعر الصرف', {
+            'fields': ('currency_code', 'region', 'rate')
+        }),
+        ('الإعدادات', {
+            'fields': ('is_active',)
+        }),
+        ('معلومات النظام', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def get_currency_icon(self, obj):
+        icons = {
+            'SAR': '🇸🇦',
+            'USD': '🇺🇸',
+        }
+        icon = icons.get(obj.currency_code, '💰')
+        return format_html('<span style="font-size: 24px;">{}</span>', icon)
+    get_currency_icon.short_description = ''
+    
+    def get_region_badge(self, obj):
+        colors = {'north': '#3b82f6', 'south': '#10b981'}
+        return format_html(
+            '<span style="background: {}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">{}</span>',
+            colors.get(obj.region, '#6b7280'), obj.get_region_display()
+        )
+    get_region_badge.short_description = 'المنطقة'
+    
+    def get_rate_display(self, obj):
+        return format_html(
+            '<span style="font-size: 16px; font-weight: bold; color: #059669;">1 {} = {:,.0f} ر.ي</span>',
+            obj.get_currency_code_display(), obj.rate
+        )
+    get_rate_display.short_description = 'سعر الصرف'
+
 
 # ============= Governorate Admin =============
 class CityInline(admin.TabularInline):
@@ -18,6 +69,7 @@ class GovernorateAdmin(admin.ModelAdmin):
         'get_image_thumbnail',
         'name',
         'name_en',
+        'get_region_badge',
         'get_cities_count',
         'get_offers_count',
         'get_color_display',
@@ -27,7 +79,7 @@ class GovernorateAdmin(admin.ModelAdmin):
     )
     
     list_editable = ('order', 'is_active')
-    list_filter = ('is_active', 'created_at')
+    list_filter = ('region', 'is_active', 'created_at')
     search_fields = ('name', 'name_en', 'description')
     
     fieldsets = (
@@ -35,6 +87,7 @@ class GovernorateAdmin(admin.ModelAdmin):
             'fields': (
                 'name',
                 'name_en',
+                'region',
                 'description',
                 'population'
             )
@@ -111,6 +164,16 @@ class GovernorateAdmin(admin.ModelAdmin):
             obj.color
         )
     get_color_display.short_description = 'اللون'
+    
+    def get_region_badge(self, obj):
+        """عرض المنطقة"""
+        colors = {'north': '#3b82f6', 'south': '#10b981'}
+        icons = {'north': '⬆️', 'south': '⬇️'}
+        return format_html(
+            '<span style="background: {}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">{} {}</span>',
+            colors.get(obj.region, '#6b7280'), icons.get(obj.region, ''), obj.get_region_display()
+        )
+    get_region_badge.short_description = 'المنطقة'
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):

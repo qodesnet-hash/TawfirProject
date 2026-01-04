@@ -4,11 +4,47 @@ from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
 from utils.image_optimizer import optimize_image, validate_image_size
 
+# ============= Exchange Rate Model =============
+class ExchangeRate(models.Model):
+    """نموذج أسعار الصرف حسب المنطقة"""
+    REGION_CHOICES = [
+        ('north', 'شمال'),
+        ('south', 'جنوب'),
+    ]
+    
+    CURRENCY_CHOICES = [
+        ('SAR', 'ريال سعودي'),
+        ('USD', 'دولار أمريكي'),
+    ]
+    
+    currency_code = models.CharField(max_length=10, choices=CURRENCY_CHOICES, verbose_name="العملة")
+    region = models.CharField(max_length=10, choices=REGION_CHOICES, verbose_name="المنطقة")
+    rate = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="السعر بالريال اليمني")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخر تحديث")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    
+    class Meta:
+        verbose_name = "سعر صرف"
+        verbose_name_plural = "أسعار الصرف"
+        unique_together = ['currency_code', 'region']
+        ordering = ['region', 'currency_code']
+    
+    def __str__(self):
+        return f"{self.get_currency_code_display()} - {self.get_region_display()}: {self.rate} ر.ي"
+
+
 # ============= Governorate Model =============
 class Governorate(models.Model):
     """نموذج المحافظات"""
+    REGION_CHOICES = [
+        ('north', 'شمال'),
+        ('south', 'جنوب'),
+    ]
+    
     name = models.CharField(max_length=100, verbose_name="اسم المحافظة")
     name_en = models.CharField(max_length=100, blank=True, null=True, verbose_name="الاسم بالإنجليزية")
+    region = models.CharField(max_length=10, choices=REGION_CHOICES, default='north', verbose_name="المنطقة")
     image = models.ImageField(upload_to='governorates/', blank=True, null=True, verbose_name="صورة المحافظة")
     icon = models.CharField(max_length=50, blank=True, null=True, verbose_name="أيقونة", help_text="اسم الأيقونة من Ionicons")
     color = models.CharField(max_length=7, default="#3b82f6", verbose_name="اللون المميز", help_text="لون hex للمحافظة")

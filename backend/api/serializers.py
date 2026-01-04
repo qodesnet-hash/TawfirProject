@@ -1,7 +1,19 @@
 from rest_framework import serializers
-from .models import Offer, City, Category, Merchant, OfferImage, Favorite, Review, MerchantRequest, OnlineUsersSettings 
+from .models import Offer, City, Category, Merchant, OfferImage, Favorite, Review, MerchantRequest, OnlineUsersSettings, ExchangeRate, Governorate
 from users.models import CustomUser
 from django.db.models import Avg, Count
+
+
+# ============= Exchange Rate Serializer =============
+class ExchangeRateSerializer(serializers.ModelSerializer):
+    """سيرياليزر لأسعار الصرف"""
+    currency_name = serializers.CharField(source='get_currency_code_display', read_only=True)
+    region_name = serializers.CharField(source='get_region_display', read_only=True)
+    
+    class Meta:
+        model = ExchangeRate
+        fields = ['id', 'currency_code', 'currency_name', 'region', 'region_name', 'rate', 'updated_at']
+
 
 class CitySerializer(serializers.ModelSerializer):
     class Meta:

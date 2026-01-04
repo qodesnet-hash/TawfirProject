@@ -509,3 +509,61 @@ class BusinessTypeListView(APIView):
         business_types = BusinessType.objects.filter(is_active=True).order_by('order', 'name')
         data = [{'id': bt.id, 'name': bt.name, 'icon': bt.icon} for bt in business_types]
         return Response(data)
+
+
+# ============= Exchange Rate View =============
+from .models import ExchangeRate
+from .serializers import ExchangeRateSerializer
+
+class ExchangeRateListView(APIView):
+    '''
+    جلب أسعار الصرف حسب المنطقة
+    GET /api/exchange-rates/ - جميع الأسعار
+    GET /api/exchange-rates/?region=north - أسعار الشمال
+    GET /api/exchange-rates/?region=south - أسعار الجنوب
+    '''
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        region = request.query_params.get('region', None)
+        
+        rates = ExchangeRate.objects.filter(is_active=True)
+        
+        if region in ['north', 'south']:
+            rates = rates.filter(region=region)
+        
+        # تحويل لقاموس سهل الاستخدام
+        rates_dict = {}
+        for rate in rates:
+            key = f"{rate.currency_code}_{rate.region}"
+            rates_dict[key] = {
+                'currency_code': rate.currency_code,
+                'currency_name': rate.get_currency_code_display(),
+                'region': rate.region,
+                'region_name': rate.get_region_display(),
+                'rate': float(rate.rate),
+                'updated_at': rate.updated_at.isoformat()
+            }
+        
+        # إضافة الريال اليمني (العملة الأساسية)
+        rates_dict['YER_north'] = {
+            'currency_code': 'YER',
+            'currency_name': 'ريال يمني',
+            'region': 'north',
+            'region_name': 'شمال',
+            'rate': 1.0,
+            'updated_at': None
+        }
+        rates_dict['YER_south'] = {
+            'currency_code': 'YER',
+            'currency_name': 'ريال يمني',
+            'region': 'south',
+            'region_name': 'جنوب',
+            'rate': 1.0,
+            'updated_at': None
+        }
+        
+        return Response({
+            'rates': rates_dict,
+            'list': ExchangeRateSerializer(rates, many=True).data
+        })

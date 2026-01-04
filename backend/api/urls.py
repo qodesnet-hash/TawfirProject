@@ -24,7 +24,8 @@ from .views import (
     TopMerchantsView, MerchantDetailView, MerchantOffersView,
     NearbyOffersView,
     CheckAuthView,
-    BusinessTypeListView
+    BusinessTypeListView,
+    ExchangeRateListView
 )
 from .merchant_views import (
     CheckMerchantStatusView,
@@ -58,6 +59,9 @@ urlpatterns = [
     
     # Business Types (أنواع الأنشطة)
     path('business-types/', BusinessTypeListView.as_view(), name='business-type-list'),
+    
+    # Exchange Rates (أسعار الصرف)
+    path('exchange-rates/', ExchangeRateListView.as_view(), name='exchange-rate-list'),
     
     # Cities
     path('cities/', CityListView.as_view(), name='city-list'),
