@@ -12,6 +12,17 @@ from .views_featured import (
     MyActiveFeaturedAdsView,
     FeaturedRequestStatsView
 )
+from .views_deal_of_day import (
+    DealOfDayListView,
+    DealOfDayByCityView,
+    DealOfDaySettingsView,
+    DealOfDayClickView,
+    MerchantDealOfDayRequestsView,
+    MerchantDealOfDayCreateView,
+    MerchantDealOfDayDetailView,
+    MerchantDealOfDayUploadReceiptView,
+    MerchantDealOfDayStatsView
+)
 from .views import (
     OnlineUsersSettingsView,
     OfferListView, 
@@ -106,4 +117,15 @@ urlpatterns = [
     path('featured-requests/<int:pk>/upload-receipt/', FeaturedRequestUploadReceiptView.as_view(), name='featured-request-upload-receipt'),
     path('featured-requests/my-active/', MyActiveFeaturedAdsView.as_view(), name='my-active-featured-ads'),
     path('featured-requests/stats/', FeaturedRequestStatsView.as_view(), name='featured-request-stats'),
+    
+    # Deal of the Day System (نظام صفقة اليوم)
+    path('deal-of-day/', DealOfDayListView.as_view(), name='deal-of-day-list'),
+    path('deal-of-day/city/<int:city_id>/', DealOfDayByCityView.as_view(), name='deal-of-day-by-city'),
+    path('deal-of-day/settings/', DealOfDaySettingsView.as_view(), name='deal-of-day-settings'),
+    path('deal-of-day/<int:request_id>/click/', DealOfDayClickView.as_view(), name='deal-of-day-click'),
+    path('deal-of-day/my-requests/', MerchantDealOfDayRequestsView.as_view(), name='merchant-deal-of-day-requests'),
+    path('deal-of-day/create/', MerchantDealOfDayCreateView.as_view(), name='merchant-deal-of-day-create'),
+    path('deal-of-day/requests/<int:pk>/', MerchantDealOfDayDetailView.as_view(), name='merchant-deal-of-day-detail'),
+    path('deal-of-day/requests/<int:pk>/upload-receipt/', MerchantDealOfDayUploadReceiptView.as_view(), name='merchant-deal-of-day-upload-receipt'),
+    path('deal-of-day/stats/', MerchantDealOfDayStatsView.as_view(), name='merchant-deal-of-day-stats'),
 ]

@@ -352,3 +352,127 @@ class FeaturedRequestListSerializer(serializers.ModelSerializer):
             'end_date',
             'created_at'
         ]
+
+
+# ============= Deal of the Day Serializers =============
+from .models import DealOfDaySettings, DealOfDayRequest
+
+class DealOfDaySettingsSerializer(serializers.ModelSerializer):
+    """سيرياليزر إعدادات صفقة اليوم"""
+    mode_display = serializers.CharField(source='get_mode_display', read_only=True)
+    
+    class Meta:
+        model = DealOfDaySettings
+        fields = ['mode', 'mode_display', 'price_per_day', 'max_days_per_merchant', 'is_active']
+
+
+class DealOfDayRequestSerializer(serializers.ModelSerializer):
+    """سيرياليزر طلبات صفقة اليوم"""
+    merchant_name = serializers.CharField(source='merchant.business_name', read_only=True)
+    offer_title = serializers.CharField(source='offer.title', read_only=True)
+    offer_image = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    days_remaining = serializers.IntegerField(read_only=True)
+    is_active_now = serializers.BooleanField(read_only=True)
+    payment_method_name = serializers.CharField(source='payment_method.get_bank_name_display', read_only=True)
+    
+    class Meta:
+        model = DealOfDayRequest
+        fields = [
+            'id',
+            'merchant',
+            'merchant_name',
+            'offer',
+            'offer_title',
+            'offer_image',
+            'status',
+            'status_display',
+            'duration_days',
+            'total_price',
+            'payment_method',
+            'payment_method_name',
+            'transaction_number',
+            'payment_receipt',
+            'start_date',
+            'end_date',
+            'days_remaining',
+            'is_active_now',
+            'rejection_reason',
+            'created_at'
+        ]
+        read_only_fields = ['merchant', 'total_price', 'start_date', 'end_date', 'rejection_reason']
+    
+    def get_offer_image(self, obj):
+        if obj.offer.images.exists():
+            request = self.context.get('request')
+            image = obj.offer.images.first().image
+            if request:
+                return request.build_absolute_uri(image.url)
+            return image.url
+        return None
+    
+    def create(self, validated_data):
+        """إنشاء طلب جديد"""
+        request = self.context.get('request')
+        if request and hasattr(request.user, 'merchant'):
+            validated_data['merchant'] = request.user.merchant
+            validated_data['status'] = 'draft'
+            # حساب السعر
+            settings = DealOfDaySettings.get_settings()
+            duration = validated_data.get('duration_days', 1)
+            validated_data['total_price'] = settings.price_per_day * duration
+        return super().create(validated_data)
+
+
+class DealOfDayOfferSerializer(serializers.ModelSerializer):
+    """سيرياليزر لعرض صفقة اليوم (للواجهة)"""
+    merchant_name = serializers.CharField(source='merchant.business_name', read_only=True)
+    merchant_logo = serializers.SerializerMethodField()
+    city_name = serializers.CharField(source='city.name', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    category_icon = serializers.CharField(source='category.icon', read_only=True)
+    image = serializers.SerializerMethodField()
+    discount_percentage = serializers.IntegerField(source='saving_percentage', read_only=True)
+    deal_ends_at = serializers.DateTimeField(source='deal_of_day_until', read_only=True)
+    
+    class Meta:
+        model = Offer
+        fields = [
+            'id',
+            'title',
+            'description',
+            'merchant',
+            'merchant_name',
+            'merchant_logo',
+            'city',
+            'city_name',
+            'category_name',
+            'category_icon',
+            'price_before',
+            'price_after',
+            'currency',
+            'currency_symbol',
+            'discount_percentage',
+            'image',
+            'end_at',
+            'deal_ends_at',
+            'views_count',
+            'created_at'
+        ]
+    
+    def get_image(self, obj):
+        if obj.images.exists():
+            request = self.context.get('request')
+            image = obj.images.first().image
+            if request:
+                return request.build_absolute_uri(image.url)
+            return image.url
+        return None
+    
+    def get_merchant_logo(self, obj):
+        if obj.merchant.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.merchant.logo.url)
+            return obj.merchant.logo.url
+        return None

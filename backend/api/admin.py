@@ -639,6 +639,176 @@ class FeaturedRequestAdmin(admin.ModelAdmin):
         self.message_user(request, f'❌ تم رفض {count} إعلان', level='WARNING')
     reject_requests.short_description = '❌ رفض الإعلانات'
 
+# ============= Deal of the Day Admin =============
+from .models import DealOfDaySettings, DealOfDayRequest
+
+@admin.register(DealOfDaySettings)
+class DealOfDaySettingsAdmin(admin.ModelAdmin):
+    """إدارة إعدادات صفقة اليوم"""
+    list_display = ['get_mode_badge', 'get_price_display', 'min_discount', 'max_days_per_merchant', 'is_active', 'updated_at']
+    
+    fieldsets = (
+        ('إعدادات الوضع', {
+            'fields': ('mode', 'is_active'),
+            'description': 'تلقائي: يختار أعلى خصم تلقائياً | مدفوع فقط: يعرض الطلبات المدفوعة فقط'
+        }),
+        ('إعدادات الوضع التلقائي', {
+            'fields': ('min_discount',),
+            'description': 'الحد الأدنى لنسبة الخصم للعروض التلقائية'
+        }),
+        ('إعدادات التسعير', {
+            'fields': ('price_per_day', 'max_days_per_merchant'),
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        # منع إضافة أكثر من سجل
+        return not DealOfDaySettings.objects.exists()
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
+    
+    def get_mode_badge(self, obj):
+        colors = {'auto': '#10b981', 'paid': '#f59e0b'}
+        icons = {'auto': '🔄', 'paid': '💰'}
+        return format_html(
+            '<span style="background: {}; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold;">{} {}</span>',
+            colors.get(obj.mode, '#6b7280'), icons.get(obj.mode, ''), obj.get_mode_display()
+        )
+    get_mode_badge.short_description = 'الوضع'
+    
+    def get_price_display(self, obj):
+        return format_html(
+            '<span style="font-size: 16px; font-weight: bold; color: #059669;">{:,.0f} ر.ي/يوم</span>',
+            obj.price_per_day
+        )
+    get_price_display.short_description = 'السعر'
+
+
+@admin.register(DealOfDayRequest)
+class DealOfDayRequestAdmin(admin.ModelAdmin):
+    """إدارة طلبات صفقة اليوم"""
+    list_display = ['get_offer_title', 'get_merchant_name', 'get_status_badge', 'duration_days', 'get_price_display', 'get_dates', 'created_at']
+    list_filter = ['status', 'created_at', 'duration_days']
+    search_fields = ['merchant__business_name', 'offer__title']
+    readonly_fields = ['created_at', 'updated_at', 'reviewed_at', 'views_count', 'clicks_count', 'get_receipt_preview']
+    ordering = ['-created_at']
+    actions = ['activate_requests', 'reject_requests']
+    
+    fieldsets = (
+        ('معلومات الطلب', {
+            'fields': ('merchant', 'offer', 'status')
+        }),
+        ('المدة والسعر', {
+            'fields': ('duration_days', 'total_price')
+        }),
+        ('معلومات الدفع', {
+            'fields': ('payment_method', 'transaction_number', 'payment_receipt', 'get_receipt_preview')
+        }),
+        ('التواريخ', {
+            'fields': ('start_date', 'end_date', 'created_at', 'reviewed_at'),
+            'classes': ('collapse',)
+        }),
+        ('الإحصائيات', {
+            'fields': ('views_count', 'clicks_count'),
+            'classes': ('collapse',)
+        }),
+        ('ملاحظات', {
+            'fields': ('admin_notes', 'rejection_reason'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_offer_title(self, obj):
+        discount = obj.offer.saving_percentage
+        return format_html(
+            '<div><strong>{}</strong><br><span style="color: #059669; font-size: 12px;">{}% خصم</span></div>',
+            obj.offer.title[:40], discount
+        )
+    get_offer_title.short_description = 'العرض'
+    
+    def get_merchant_name(self, obj):
+        return obj.merchant.business_name
+    get_merchant_name.short_description = 'التاجر'
+    
+    def get_status_badge(self, obj):
+        colors = {
+            'draft': '#6b7280',
+            'pending': '#f59e0b',
+            'active': '#10b981',
+            'rejected': '#ef4444',
+            'expired': '#6b7280',
+        }
+        icons = {
+            'draft': '✏️',
+            'pending': '⏳',
+            'active': '🔥',
+            'rejected': '❌',
+            'expired': '⏰',
+        }
+        return format_html(
+            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px;">{} {}</span>',
+            colors.get(obj.status, '#6b7280'), icons.get(obj.status, ''), obj.get_status_display()
+        )
+    get_status_badge.short_description = 'الحالة'
+    
+    def get_price_display(self, obj):
+        return format_html(
+            '<span style="font-weight: bold; color: #059669;">{:,.0f} ر.ي</span>',
+            obj.total_price
+        )
+    get_price_display.short_description = 'السعر'
+    
+    def get_dates(self, obj):
+        if obj.start_date and obj.end_date:
+            return format_html(
+                '<span style="font-size: 11px;">{} → {}</span>',
+                obj.start_date.strftime('%Y-%m-%d'),
+                obj.end_date.strftime('%Y-%m-%d')
+            )
+        return '-'
+    get_dates.short_description = 'الفترة'
+    
+    def get_receipt_preview(self, obj):
+        if obj.payment_receipt:
+            if obj.payment_receipt.name.endswith('.pdf'):
+                return format_html(
+                    '<a href="{}" target="_blank" style="background: #3b82f6; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none;">📄 عرض PDF</a>',
+                    obj.payment_receipt.url
+                )
+            else:
+                return format_html(
+                    '<img src="{}" style="max-width: 300px; border: 2px solid #ddd; border-radius: 8px; padding: 5px;" />',
+                    obj.payment_receipt.url
+                )
+        return 'لم يتم رفع إيصال'
+    get_receipt_preview.short_description = 'معاينة الإيصال'
+    
+    def activate_requests(self, request, queryset):
+        """تفعيل الطلبات المحددة"""
+        from datetime import timedelta
+        count = 0
+        for req in queryset.filter(status='pending'):
+            req.status = 'active'
+            req.start_date = timezone.now()
+            req.end_date = req.start_date + timedelta(days=req.duration_days)
+            req.reviewed_at = timezone.now()
+            req.save()
+            count += 1
+        self.message_user(request, f'🔥 تم تفعيل {count} صفقة')
+    activate_requests.short_description = '🔥 تفعيل الصفقات'
+    
+    def reject_requests(self, request, queryset):
+        """رفض الطلبات المحددة"""
+        count = queryset.filter(status='pending').update(
+            status='rejected',
+            rejection_reason='تم الرفض من قبل الإدارة',
+            reviewed_at=timezone.now()
+        )
+        self.message_user(request, f'❌ تم رفض {count} طلب', level='WARNING')
+    reject_requests.short_description = '❌ رفض الطلبات'
+
+
 # ============= Notifications Admin =============
 from .admin_notifications import *
 

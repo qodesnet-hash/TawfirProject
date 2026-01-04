@@ -1,3 +1,4 @@
 .env.save
 .env
 *.save
+frontend/

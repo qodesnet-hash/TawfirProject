@@ -239,6 +239,8 @@ class Offer(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='مسودة')
     is_featured = models.BooleanField(default=False, verbose_name="عرض مميز؟")
     featured_until = models.DateTimeField(null=True, blank=True, verbose_name="مميز حتى")
+    is_deal_of_day = models.BooleanField(default=False, verbose_name="صفقة اليوم؟")
+    deal_of_day_until = models.DateTimeField(null=True, blank=True, verbose_name="صفقة اليوم حتى")
     created_at = models.DateTimeField(auto_now_add=True)
     views_count = models.IntegerField(default=0, verbose_name="عدد المشاهدات")
     delivery_enabled = models.BooleanField(default=False, verbose_name="تفعيل التوصيل")
@@ -627,6 +629,134 @@ class FeaturedRequest(models.Model):
                     self.offer.save()
                     print(f"❌ Auto-Deactivated Featured Ad: {self.offer.title}")
         super().save(*args, **kwargs)
+
+# ============= Deal of the Day Models =============
+class DealOfDaySettings(models.Model):
+    """إعدادات صفقة اليوم"""
+    MODE_CHOICES = [
+        ('auto', 'تلقائي'),
+        ('paid', 'مدفوع فقط'),
+    ]
+    
+    mode = models.CharField(max_length=10, choices=MODE_CHOICES, default='auto', verbose_name="الوضع")
+    min_discount = models.IntegerField(default=25, validators=[MinValueValidator(0), MaxValueValidator(100)], verbose_name="الحد الأدنى للخصم %")
+    price_per_day = models.DecimalField(max_digits=10, decimal_places=2, default=1000, verbose_name="السعر لليوم الواحد (ر.ي)")
+    max_days_per_merchant = models.IntegerField(default=7, verbose_name="الحد الأقصى للأيام لكل تاجر/أسبوع")
+    is_active = models.BooleanField(default=True, verbose_name="تفعيل صفقة اليوم")
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "إعدادات صفقة اليوم"
+        verbose_name_plural = "إعدادات صفقة اليوم"
+    
+    def __str__(self):
+        return f"إعدادات صفقة اليوم - {self.get_mode_display()}"
+    
+    def save(self, *args, **kwargs):
+        # التأكد من وجود سجل واحد فقط
+        if not self.pk and DealOfDaySettings.objects.exists():
+            raise ValueError("يمكن إنشاء سجل إعدادات واحد فقط")
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_settings(cls):
+        """جلب الإعدادات أو إنشاء افتراضية"""
+        settings, created = cls.objects.get_or_create(pk=1)
+        return settings
+
+
+class DealOfDayRequest(models.Model):
+    """طلبات صفقة اليوم"""
+    STATUS_CHOICES = [
+        ('draft', 'مسودة'),
+        ('pending', 'قيد المراجعة'),
+        ('active', 'نشط'),
+        ('rejected', 'مرفوض'),
+        ('expired', 'منتهي'),
+    ]
+    
+    merchant = models.ForeignKey(Merchant, on_delete=models.CASCADE, related_name='deal_of_day_requests', verbose_name="التاجر")
+    offer = models.ForeignKey(Offer, on_delete=models.CASCADE, related_name='deal_of_day_requests', verbose_name="العرض")
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="الحالة")
+    duration_days = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(7)], verbose_name="عدد الأيام")
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="السعر الإجمالي")
+    
+    payment_receipt = models.FileField(upload_to='deal_of_day_receipts/', null=True, blank=True, verbose_name="إيصال الدفع")
+    payment_method = models.ForeignKey(PaymentAccount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="طريقة الدفع")
+    transaction_number = models.CharField(max_length=100, blank=True, null=True, verbose_name="رقم الحوالة")
+    
+    start_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ البدء")
+    end_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الانتهاء")
+    
+    views_count = models.IntegerField(default=0, verbose_name="عدد المشاهدات")
+    clicks_count = models.IntegerField(default=0, verbose_name="عدد الضغطات")
+    
+    admin_notes = models.TextField(blank=True, null=True, verbose_name="ملاحظات الإدارة")
+    rejection_reason = models.TextField(blank=True, null=True, verbose_name="سبب الرفض")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الطلب")
+    updated_at = models.DateTimeField(auto_now=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ المراجعة")
+    
+    class Meta:
+        verbose_name = "طلب صفقة اليوم"
+        verbose_name_plural = "طلبات صفقة اليوم"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.merchant.business_name} - {self.offer.title} ({self.get_status_display()})"
+    
+    @property
+    def is_active_now(self):
+        """هل الطلب نشط حالياً"""
+        if self.status == 'active' and self.start_date and self.end_date:
+            return self.start_date <= timezone.now() <= self.end_date
+        return False
+    
+    @property
+    def days_remaining(self):
+        """الأيام المتبقية"""
+        if self.is_active_now and self.end_date:
+            remaining = self.end_date - timezone.now()
+            return max(0, remaining.days)
+        return 0
+    
+    def calculate_price(self):
+        """حساب السعر الإجمالي"""
+        settings = DealOfDaySettings.get_settings()
+        return settings.price_per_day * self.duration_days
+    
+    def save(self, *args, **kwargs):
+        # حساب السعر تلقائياً
+        if not self.total_price:
+            self.total_price = self.calculate_price()
+        
+        # عند التفعيل
+        if self.pk:
+            old_instance = DealOfDayRequest.objects.filter(pk=self.pk).first()
+            if old_instance:
+                if old_instance.status != 'active' and self.status == 'active':
+                    from datetime import timedelta
+                    if not self.start_date:
+                        self.start_date = timezone.now()
+                    if not self.end_date:
+                        self.end_date = self.start_date + timedelta(days=self.duration_days)
+                    if not self.reviewed_at:
+                        self.reviewed_at = timezone.now()
+                    # تحديث العرض
+                    self.offer.is_deal_of_day = True
+                    self.offer.deal_of_day_until = self.end_date
+                    self.offer.save()
+                    print(f"🔥 Activated Deal of Day: {self.offer.title} until {self.end_date}")
+                elif old_instance.status == 'active' and self.status in ['rejected', 'expired']:
+                    self.offer.is_deal_of_day = False
+                    self.offer.deal_of_day_until = None
+                    self.offer.save()
+                    print(f"❌ Deactivated Deal of Day: {self.offer.title}")
+        
+        super().save(*args, **kwargs)
+
 
 # ============= Notifications Models =============
 from .models_notifications import FCMToken, Notification
